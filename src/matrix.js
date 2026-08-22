@@ -32,17 +32,6 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     urlVar2 = options.urlVar2,
     defaultColor = theme.visualization.getColorByName(options.defaultColor);
 
-  // cellSize is the "natural" configured cell size. When fitToPanel is enabled and the natural
-  // matrix width would overflow the panel, shrink (never grow) the effective cell size used for
-  // all layout math below so the matrix fits within the panel's width.
-  let cellSize = options.cellSize;
-  if (options.fitToPanel && panelWidth) {
-    const naturalWidth = colNames.length * cellSize;
-    if (naturalWidth > panelWidth) {
-      cellSize = panelWidth / colNames.length;
-    }
-  }
-
   // urlOther = options.urlOther,
   // urlOtherText = options.urlOtherText;
 
@@ -70,6 +59,28 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   // Calculate the margins needed
   const colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
   const rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
+
+  // Row category header width is needed below to compute the left margin, so resolve it here
+  // (ahead of the "Row category configuration" block further down, which uses the same value).
+  const fitRowCategoryHeaderWidth = options.enableRowGrouping && rowCategories && rowCategories.length > 0
+    ? (options.rowCategoryHeaderWidth !== undefined ? options.rowCategoryHeaderWidth : 100)
+    : 0;
+
+  // cellSize is the "natural" configured cell size. When fitToPanel is enabled and the natural
+  // matrix width would overflow the panel, shrink (never grow) the effective cell size used for
+  // all layout math below so the matrix fits within the panel's width. The rendered SVG is the
+  // cell grid PLUS the fixed left margin reserved for row labels (rowTxtOffset), so that margin
+  // has to be subtracted from panelWidth before dividing -- otherwise the "fitted" cell grid still
+  // overflows the panel by exactly the margin's width once it's added back on.
+  let cellSize = options.cellSize;
+  if (options.fitToPanel && panelWidth) {
+    const marginLeft = rowTxtOffset + fitRowCategoryHeaderWidth;
+    const naturalWidth = colNames.length * cellSize + marginLeft;
+    if (naturalWidth > panelWidth) {
+      const availableForCells = panelWidth - marginLeft;
+      cellSize = Math.max(1, availableForCells) / colNames.length;
+    }
+  }
 
   // Category header configuration
   const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0

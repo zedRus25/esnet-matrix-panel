@@ -52,7 +52,7 @@
       },
       "gridPos": {
         "h": 15,
-        "w": 4,
+        "w": 6,
         "x": 0,
         "y": 0
       },
@@ -61,7 +61,7 @@
         "addUrl": false,
         "aggregationMethod": "sum",
         "cellPadding": 10,
-        "cellSize": 50,
+        "cellSize": 150,
         "colCategoryGap": 4,
         "colCategoryHeaderHeight": 100,
         "defaultColor": "#E6E6E6",
@@ -132,7 +132,7 @@
       "gridPos": {
         "h": 15,
         "w": 8,
-        "x": 4,
+        "x": 6,
         "y": 0
       },
       "id": 2,

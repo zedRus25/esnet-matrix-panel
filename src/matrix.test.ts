@@ -59,14 +59,14 @@ function renderAndGetSvgWidth(options: any, panelWidth?: number): number {
 describe('fitToPanel', () => {
   it('shrinks cell size (and SVG width) to fit when the panel is narrower than the natural width', () => {
     const naturalWidth = renderAndGetSvgWidth({ ...baseOptions, fitToPanel: false });
-    const panelWidth = 60; // much narrower than colNames.length * cellSize (160)
+    const panelWidth = 60; // narrower than the natural SVG width (margin + colNames.length * cellSize)
     const fittedWidth = renderAndGetSvgWidth({ ...baseOptions, fitToPanel: true }, panelWidth);
 
     expect(fittedWidth).toBeLessThan(naturalWidth);
-    // SVG width = matrix area (colNames.length * cellSize) + left margin (unaffected by cellSize).
-    // Natural: colNames.length * 20 = 160. Fitted: colNames.length * (panelWidth/colNames.length) = panelWidth.
-    const margin = naturalWidth - colNames.length * baseOptions.cellSize;
-    expect(fittedWidth).toBeCloseTo(panelWidth + margin, 5);
+    // The rendered SVG is the cell grid PLUS a fixed left margin (row-label space, unaffected by
+    // cellSize). A correct "fit" shrinks cellSize so margin + cells lands back on panelWidth exactly
+    // -- not on panelWidth + margin, which would still overflow the panel by the margin's width.
+    expect(fittedWidth).toBeCloseTo(panelWidth, 5);
   });
 
   it('leaves layout unchanged when fitToPanel is false (default), even if narrower than a hypothetical panel', () => {
