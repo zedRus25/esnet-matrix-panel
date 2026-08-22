@@ -9,6 +9,7 @@ on:
     branches:
       - master
       - main
+      - upstream-master-mirror
 
 jobs:
   build:
@@ -187,6 +188,36 @@ jobs:
       - name: Install dev dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Cache Grafana base image
+        # nightly is a moving tag, caching it would pin stale builds
+        if: matrix.GRAFANA_IMAGE.VERSION != 'nightly'
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-cache/grafana-image.tar
+          key: grafana-base-image-${{ matrix.GRAFANA_IMAGE.NAME }}-${{ matrix.GRAFANA_IMAGE.VERSION }}
+
+      - name: Load cached Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit == 'true' }}
+        run: docker load -i /tmp/docker-cache/grafana-image.tar
+
+      # docker compose has no top-level `image:` for this service (it's build-only),
+      # so `docker compose pull` never fetches it and buildkit doesn't leave the FROM
+      # base image locally tagged -- pull it ourselves so `docker save` below has a
+      # reference to find, and so the compose build reuses it instead of the daemon
+      # implicitly fetching it mid-build.
+      - name: Pull Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
+        run: docker pull grafana/${{ matrix.GRAFANA_IMAGE.NAME }}:${{ matrix.GRAFANA_IMAGE.VERSION }}
+
+      - name: Export Grafana base image for cache
+        # nightly is a moving tag, caching it would pin stale builds
+        if: ${{ matrix.GRAFANA_IMAGE.VERSION != 'nightly' && steps.docker-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save grafana/${{ matrix.GRAFANA_IMAGE.NAME }}:${{ matrix.GRAFANA_IMAGE.VERSION }} -o /tmp/docker-cache/grafana-image.tar
+
       - name: Start Grafana
         run: |
           docker compose pull
@@ -197,6 +228,12 @@ jobs:
         with:
           url: http://localhost:3000/login
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('yarn.lock') }}
+
       - name: Install Playwright Browsers
         run: yarn exec playwright install chromium --with-deps
 
@@ -204,11 +241,20 @@ jobs:
         id: run-tests
         run: yarn e2e
 
+      - name: Upload smoke screenshots
+        uses: actions/upload-artifact@v7
+        if: ${{ always() && !cancelled() }}
+        with:
+          name: smoke-screenshots-${{ matrix.GRAFANA_IMAGE.NAME }}-${{ matrix.GRAFANA_IMAGE.VERSION }}
+          path: test-results/screenshots/
+          retention-days: 5
+          if-no-files-found: ignore
+
       - name: Upload e2e test summary
         uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@upload-report-artifacts/v1.0.1
         if: ${{ always() && !cancelled() }}
         with:
-          upload-report: false
+          upload-report: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           test-outcome: ${{ steps.run-tests.outcome }}
 
@@ -229,20 +275,255 @@ jobs:
       #     path: grafana-server.log
       #     retention-days: 5
 
+  pr-screenshot-diff:
+    name: Before/after panel screenshots
+    if: ${{ github.event_name == 'pull_request' && needs.build.outputs.has-e2e == 'true' }}
+    needs: build
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      # Pinned to a single version for reviewer illustration, not cross-version
+      # regression coverage (that's what the playwright-tests matrix is for).
+      GRAFANA_VERSION: '12.4.0'
+      GRAFANA_IMAGE: grafana-enterprise
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('yarn.lock') }}
+
+      - name: Install Playwright Browsers
+        run: yarn exec playwright install chromium --with-deps
+
+      - name: Cache Grafana base image
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-cache/grafana-image.tar
+          key: grafana-base-image-${{ env.GRAFANA_IMAGE }}-${{ env.GRAFANA_VERSION }}
+
+      - name: Load cached Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit == 'true' }}
+        run: docker load -i /tmp/docker-cache/grafana-image.tar
+
+      # docker compose has no top-level `image:` for this service (it's build-only),
+      # so `docker compose pull` never fetches it and buildkit doesn't leave the FROM
+      # base image locally tagged -- pull it ourselves so `docker save` below has a
+      # reference to find, and so the compose build reuses it instead of the daemon
+      # implicitly fetching it mid-build.
+      - name: Pull Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
+        run: docker pull grafana/${{ env.GRAFANA_IMAGE }}:${{ env.GRAFANA_VERSION }}
+
+      - name: Export Grafana base image for cache
+        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save grafana/${{ env.GRAFANA_IMAGE }}:${{ env.GRAFANA_VERSION }} -o /tmp/docker-cache/grafana-image.tar
+
+      - name: Resolve merge base
+        id: merge-base
+        run: echo "sha=$(git merge-base origin/${{ github.base_ref }} HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Capture "before" screenshots
+        run: |
+          git checkout ${{ steps.merge-base.outputs.sha }}
+          # The smoke spec(s) are the instrument capturing this screenshot, not
+          # part of what's being compared -- restore them from the PR head so
+          # a PR that adds its first e2e test still has something to run here.
+          git checkout ${{ github.sha }} -- tests/
+          yarn install --ignore-engines
+          yarn build
+          docker compose pull
+          ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ env.GRAFANA_VERSION }} GRAFANA_IMAGE=${{ env.GRAFANA_IMAGE }} docker compose up -d
+
+      - name: Wait for grafana server (before)
+        uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
+        with:
+          url: http://localhost:3000/login
+
+      - name: Run smoke specs (before)
+        # The "before" checkout is the PR's merge-base -- it's expected to fail
+        # whatever the PR is fixing, that's the point of capturing it. Don't let
+        # that fail the job; the "after" run below is what must actually pass.
+        continue-on-error: true
+        run: yarn e2e
+
+      - name: Save "before" screenshots
+        run: |
+          mkdir -p before-after/before
+          cp -r test-results/screenshots/. before-after/before/
+          docker compose down
+
+      - name: Capture "after" screenshots
+        run: |
+          git checkout ${{ github.sha }}
+          yarn install --ignore-engines
+          yarn build
+          docker compose pull
+          ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ env.GRAFANA_VERSION }} GRAFANA_IMAGE=${{ env.GRAFANA_IMAGE }} docker compose up -d
+
+      - name: Wait for grafana server (after)
+        uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
+        with:
+          url: http://localhost:3000/login
+
+      - name: Run smoke specs (after)
+        run: yarn e2e
+
+      - name: Save "after" screenshots
+        run: |
+          mkdir -p before-after/after
+          cp -r test-results/screenshots/. before-after/after/
+          docker compose down
+
+      - name: Generate before/after comparison page
+        run: |
+          {
+            echo '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            echo '<title>Before/after screenshots - run '"${GITHUB_RUN_NUMBER}"'</title>'
+            echo '<style>'
+            echo 'body{font-family:sans-serif;margin:2rem;}'
+            echo 'table{border-collapse:collapse;width:100%;}'
+            echo 'th,td{border:1px solid #ccc;padding:.5rem;text-align:center;vertical-align:top;}'
+            echo 'img{max-width:100%;height:auto;}'
+            echo '</style></head><body>'
+            echo "<h1>Before/after panel screenshots &mdash; run ${GITHUB_RUN_NUMBER}</h1>"
+            echo "<p>Commit <code>${GITHUB_SHA}</code></p>"
+            echo '<table><thead><tr><th>Screenshot</th><th>Before</th><th>After</th></tr></thead><tbody>'
+            for f in before-after/before/*; do
+              name=$(basename "$f")
+              if [ -f "before-after/after/${name}" ]; then
+                echo "<tr><td>${name}</td><td><img src=\"before/${name}\"></td><td><img src=\"after/${name}\"></td></tr>"
+              fi
+            done
+            echo '</tbody></table></body></html>'
+          } > before-after/index.html
+
+      - name: Upload before/after screenshots
+        uses: actions/upload-artifact@v7
+        if: ${{ always() && !cancelled() }}
+        with:
+          name: before-after-screenshots
+          path: before-after/
+          retention-days: 5
+          if-no-files-found: ignore
+
   publish-report:
     if: ${{ always() && !cancelled() }}
     permissions:
       contents: write
       id-token: write
       pull-requests: write
-    needs: [playwright-tests]
+    needs: [playwright-tests, pr-screenshot-diff]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
-          # required for playwright-gh-pages
-          persist-credentials: true
+          # the deploy-report-pages action injects its own github-token auth;
+          # persisting credentials here too causes a duplicate Authorization
+          # header and a 400 from GitHub on the action's internal checkout.
+          persist-credentials: false
       - name: Publish report
         uses: grafana/plugin-actions/playwright-gh-pages/deploy-report-pages@deploy-report-pages/v1.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download before/after screenshots
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: before-after-screenshots
+          path: before-after
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          path: gh-pages
+          persist-credentials: true
+
+      - name: Publish before/after comparison and rebuild index
+        run: |
+          set -e
+          cd gh-pages
+
+          DATE_DIR="$(date -u +%Y%m%d)"
+          RUN_DIR="${{ github.run_number }}"
+
+          if [ -f ../before-after/index.html ]; then
+            mkdir -p "${DATE_DIR}/${RUN_DIR}/before-after"
+            cp -r ../before-after/. "${DATE_DIR}/${RUN_DIR}/before-after/"
+          fi
+
+          {
+            echo '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            echo '<title>esnet-matrix-panel e2e reports</title>'
+            echo '<style>'
+            echo 'body{font-family:sans-serif;margin:2rem;}'
+            echo 'ul{padding-left:1.2rem;}'
+            echo 'h2{margin-top:2rem;}'
+            echo '</style></head><body>'
+            echo '<h1>esnet-matrix-panel e2e reports</h1>'
+            for date_dir in $(find . -mindepth 1 -maxdepth 1 -type d -name '[0-9]*' | sort -r); do
+              date_name=$(basename "$date_dir")
+              echo "<h2>${date_name}</h2>"
+              for run_dir in $(find "$date_dir" -mindepth 1 -maxdepth 1 -type d | sort -rn); do
+                run_name=$(basename "$run_dir")
+                echo "<h3>Run ${run_name}</h3><ul>"
+                for report_dir in $(find "$run_dir" -mindepth 1 -maxdepth 1 -type d | sort); do
+                  report_name=$(basename "$report_dir")
+                  if [ "$report_name" = "before-after" ]; then
+                    echo "<li><a href=\"${date_name}/${run_name}/before-after/\">Before/after comparison</a></li>"
+                  else
+                    echo "<li><a href=\"${date_name}/${run_name}/${report_name}/\">${report_name}</a></li>"
+                  fi
+                done
+                echo '</ul>'
+              done
+            done
+            echo '</body></html>'
+          } > index.html
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if [ -f ../before-after/index.html ]; then
+            git add "${DATE_DIR}/${RUN_DIR}/before-after"
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: publish before/after comparison and rebuild index (run ${RUN_DIR})"
+            git push origin gh-pages
+          fi
+
+      - name: Link report in job summary
+        run: |
+          DATE_DIR="$(date -u +%Y%m%d)"
+          RUN_DIR="${{ github.run_number }}"
+          OWNER_LOWER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          BASE_URL="https://${OWNER_LOWER}.github.io/${REPO_NAME}"
+          {
+            echo "### Playwright report"
+            echo "- [Report index](${BASE_URL}/)"
+            echo "- [This run's reports (${DATE_DIR}/${RUN_DIR})](${BASE_URL}/${DATE_DIR}/${RUN_DIR}/)"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -89,7 +89,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     } else if (v === -1) {
       return defaultColor;
     } else {
-      return valueField.display(v).color;
+      return valueField!.display!(v).color!;
     }
   }
 
@@ -119,7 +119,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         // new row heading
         rowNamesSet.add(rowName);
 
-        const categoryName = row[rowCategoryKey];
+        const categoryName = row[rowCategoryKey!];
         if (rowGrouping && categoryName != null) {
           if (!rowCategoriesMap.has(categoryName)) {
             // new row category
@@ -140,7 +140,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         // new column heading
         colNamesSet.add(colName);
 
-        const categoryName = row[colCategoryKey];
+        const categoryName = row[colCategoryKey!];
         if (colGrouping && categoryName != null) {
           if (!colCategoriesMap.has(categoryName)) {
             // new column category
@@ -218,6 +218,11 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
 
+  const extraFieldNames = options.extraTooltipFields
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+
   frame.forEach((row) => {
     const rowName = row[sourceKey];
     const colName = row[targetKey];
@@ -230,7 +235,10 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         col: colName,
         val: v,
         color: colorMap(v),
-        display: valueField.display(v),
+        display: valueField!.display!(v),
+        ...(extraFieldNames.length > 0
+          ? { extra: Object.fromEntries(extraFieldNames.map((name) => [name, String(row[name] ?? '')])) }
+          : {}),
       };
     }
   });
@@ -259,9 +267,9 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     tempValues.forEach((val) => {
       // find display values, unit & color for each
       // store in array
-      let text = valueField.display(val).text;
-      if (valueField.display(val).suffix) {
-        text = text + ` ${valueField.display(val).suffix}`;
+      let text = valueField!.display!(val).text;
+      if (valueField!.display!(val).suffix) {
+        text = text + ` ${valueField!.display!(val).suffix}`;
       }
         legendData.push({
           label: text,
