@@ -1,7 +1,7 @@
 import { MatrixData, MatrixOptions } from './types';
 
 export function createViz(
-  elem: SVGSVGElement | null,
+  elem: Element | null,
   id: number,
   rowNames: any[],
   colNames: any[],
