@@ -30,6 +30,11 @@ export default defineConfig<PluginOptions>({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Tall enough to fit the full smoke-test dashboard (grid rows up to y=60) without
+     * scrolling -- Grafana lazy-mounts panels outside the viewport, so a short viewport
+     * leaves lower-row panels never rendered into the DOM at all. */
+    viewport: { width: 1280, height: 2400 },
   },
 
   /* Configure projects for major browsers */
