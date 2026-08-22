@@ -52,7 +52,7 @@
       },
       "gridPos": {
         "h": 15,
-        "w": 6,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -61,12 +61,13 @@
         "addUrl": false,
         "aggregationMethod": "sum",
         "cellPadding": 10,
-        "cellSize": 18,
+        "cellSize": 50,
         "colCategoryGap": 4,
         "colCategoryHeaderHeight": 100,
         "defaultColor": "#E6E6E6",
         "enableColGrouping": false,
         "enableRowGrouping": false,
+        "fitToPanel": true,
         "inputList": false,
         "legendType": "range",
         "nullColor": "#E6E6E6",
@@ -131,7 +132,7 @@
       "gridPos": {
         "h": 15,
         "w": 8,
-        "x": 6,
+        "x": 4,
         "y": 0
       },
       "id": 2,
