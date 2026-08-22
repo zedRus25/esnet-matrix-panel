@@ -20,11 +20,10 @@ const sanitizeHtml = textUtil.sanitize;
  * @param {Category[]} column categories
  * @param {Category[]} row categories
  */
-function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories) {
+function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories, panelWidth) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
-    cellSize = options.cellSize,
     cellPadding = options.cellPadding / 100, // convert the cellPadding integer to a float that can be used by d3
     txtLength = options.txtLength,
     txtSize = options.txtSize / 10, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
@@ -32,6 +31,17 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     urlVar1 = options.urlVar1,
     urlVar2 = options.urlVar2,
     defaultColor = theme.visualization.getColorByName(options.defaultColor);
+
+  // cellSize is the "natural" configured cell size. When fitToPanel is enabled and the natural
+  // matrix width would overflow the panel, shrink (never grow) the effective cell size used for
+  // all layout math below so the matrix fits within the panel's width.
+  let cellSize = options.cellSize;
+  if (options.fitToPanel && panelWidth) {
+    const naturalWidth = colNames.length * cellSize;
+    if (naturalWidth > panelWidth) {
+      cellSize = panelWidth / colNames.length;
+    }
+  }
 
   // urlOther = options.urlOther,
   // urlOtherText = options.urlOtherText;
@@ -706,14 +716,14 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @param {Category[]} row categories
  * @return {SvgInHtml} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, rowCategories) {
+function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, rowCategories, panelWidth) {
   /* eslint-disable react-hooks/rules-of-hooks */
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
-    createViz(svg, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories);
+    createViz(svg, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories, panelWidth);
   });
   return ref;
 }
 
-export { matrix };
+export { matrix, createViz };

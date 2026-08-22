@@ -43,6 +43,7 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
     parsedData.legend,
     parsedData.colCategories,
     parsedData.rowCategories,
+    width,
   );
   const thisPanelClass = `matrix-panel-${id}`;
 

@@ -1,5 +1,20 @@
 import { MatrixData, MatrixOptions } from './types';
 
+export function createViz(
+  elem: SVGSVGElement | null,
+  id: number,
+  rowNames: any[],
+  colNames: any[],
+  matrix: DataMatrixCell[][],
+  options: MatrixOptions,
+  theme: any,
+  legend: LegendData[],
+  styles: any,
+  colCategories: Category[],
+  rowCategories: Category[],
+  panelWidth?: number,
+): void;
+
 export function matrix(
   rowNames: any[],
   colNames: any[],
@@ -9,4 +24,5 @@ export function matrix(
   legend: LegendData[],
   colCategories: Category[],
   rowCategories: Category[],
+  panelWidth?: number,
 ): LegacyRef<SVGSVGElement> | undefined;
