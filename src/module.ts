@@ -255,6 +255,14 @@ plugin.setPanelOptions((builder) => {
     defaultValue: 'Value',
   });
 
+  builder.addTextInput({
+    path: 'extraTooltipFields',
+    name: 'Extra tooltip fields',
+    description: 'Comma-separated field names to show as additional tooltip rows',
+    category: OptionsCategory,
+    defaultValue: '',
+  });
+
   builder.addNumberInput({
     path: 'cellSize',
     name: 'Cell Size',

@@ -465,6 +465,19 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
             const thisColumn =sanitizeHtml(d.col);
             const thisText = sanitizeHtml(d.display.text);
             const thisSuffix = sanitizeHtml(d.display.suffix);
+            const extraRows = d.extra
+              ? Object.entries(d.extra)
+                  .map(
+                    ([name, value]) => `
+  <div class="${styles.tooltipTableCell}">
+    <div class="${styles.tooltipTableRowLabel}">${sanitizeHtml(name)}</div>
+  </div>
+  <div class="${styles.tooltipTableCell}">
+    <div class="${styles.tooltipTableRowValue}">${sanitizeHtml(value)}</div>
+  </div>`
+                  )
+                  .join('')
+              : '';
             const text = `<div class="${styles.tooltipTable}">
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowLabel}">${srcText}</div>
@@ -483,7 +496,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   </div>
   <div class="${styles.tooltipTableCell}">
     <div class="${styles.tooltipTableRowValue}">${thisText} ${thisSuffix ? thisSuffix : ''}</div>
-  </div>
+  </div>${extraRows}
 </div>`;
             return text;
           })

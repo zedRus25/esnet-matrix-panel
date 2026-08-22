@@ -22,6 +22,7 @@ export interface MatrixOptions {
   sourceText: string;
   targetText: string;
   valueText: string;
+  extraTooltipFields: string;
   addUrl: boolean;
   url: string;
   urlVar1: string;
@@ -64,6 +65,7 @@ export type DataMatrixCell = {
   val: number;
   color: string;
   display: DisplayValue;
+  extra?: Record<string, string>;
 };
 
 export type LegendData = {

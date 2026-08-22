@@ -218,6 +218,11 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     dataMatrix.push(new Array(colNames.length).fill(-1));
   }
 
+  const extraFieldNames = options.extraTooltipFields
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name.length > 0);
+
   frame.forEach((row) => {
     const rowName = row[sourceKey];
     const colName = row[targetKey];
@@ -231,6 +236,9 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         val: v,
         color: colorMap(v),
         display: valueField!.display!(v),
+        ...(extraFieldNames.length > 0
+          ? { extra: Object.fromEntries(extraFieldNames.map((name) => [name, String(row[name] ?? '')])) }
+          : {}),
       };
     }
   });
