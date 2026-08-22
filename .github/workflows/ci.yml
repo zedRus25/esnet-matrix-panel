@@ -276,6 +276,10 @@ jobs:
       - name: Capture "before" screenshots
         run: |
           git checkout ${{ steps.merge-base.outputs.sha }}
+          # The smoke spec(s) are the instrument capturing this screenshot, not
+          # part of what's being compared -- restore them from the PR head so
+          # a PR that adds its first e2e test still has something to run here.
+          git checkout ${{ github.sha }} -- tests/
           yarn install --ignore-engines
           yarn build
           docker compose pull
