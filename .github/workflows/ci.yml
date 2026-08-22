@@ -204,6 +204,15 @@ jobs:
         id: run-tests
         run: yarn e2e
 
+      - name: Upload smoke screenshots
+        uses: actions/upload-artifact@v7
+        if: ${{ always() && !cancelled() }}
+        with:
+          name: smoke-screenshots-${{ matrix.GRAFANA_IMAGE.NAME }}-${{ matrix.GRAFANA_IMAGE.VERSION }}
+          path: test-results/screenshots/
+          retention-days: 5
+          if-no-files-found: ignore
+
       - name: Upload e2e test summary
         uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@upload-report-artifacts/v1.0.1
         if: ${{ always() && !cancelled() }}
@@ -228,6 +237,92 @@ jobs:
       #     name: ${{ matrix.GRAFANA_IMAGE.NAME }}-v${{ matrix.GRAFANA_IMAGE.VERSION }}-${{github.run_id}}-server-log
       #     path: grafana-server.log
       #     retention-days: 5
+
+  pr-screenshot-diff:
+    name: Before/after panel screenshots
+    if: ${{ github.event_name == 'pull_request' && needs.build.outputs.has-e2e == 'true' }}
+    needs: build
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      # Pinned to a single version for reviewer illustration, not cross-version
+      # regression coverage (that's what the playwright-tests matrix is for).
+      GRAFANA_VERSION: '12.4.0'
+      GRAFANA_IMAGE: grafana-enterprise
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: yarn exec playwright install chromium --with-deps
+
+      - name: Resolve merge base
+        id: merge-base
+        run: echo "sha=$(git merge-base origin/${{ github.base_ref }} HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Capture "before" screenshots
+        run: |
+          git checkout ${{ steps.merge-base.outputs.sha }}
+          yarn build
+          docker compose pull
+          ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ env.GRAFANA_VERSION }} GRAFANA_IMAGE=${{ env.GRAFANA_IMAGE }} docker compose up -d
+
+      - name: Wait for grafana server (before)
+        uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
+        with:
+          url: http://localhost:3000/login
+
+      - name: Run smoke specs (before)
+        run: yarn e2e
+
+      - name: Save "before" screenshots
+        run: |
+          mkdir -p before-after/before
+          cp -r test-results/screenshots/. before-after/before/
+          docker compose down
+
+      - name: Capture "after" screenshots
+        run: |
+          git checkout ${{ github.sha }}
+          yarn build
+          docker compose pull
+          ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ env.GRAFANA_VERSION }} GRAFANA_IMAGE=${{ env.GRAFANA_IMAGE }} docker compose up -d
+
+      - name: Wait for grafana server (after)
+        uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
+        with:
+          url: http://localhost:3000/login
+
+      - name: Run smoke specs (after)
+        run: yarn e2e
+
+      - name: Save "after" screenshots
+        run: |
+          mkdir -p before-after/after
+          cp -r test-results/screenshots/. before-after/after/
+          docker compose down
+
+      - name: Upload before/after screenshots
+        uses: actions/upload-artifact@v7
+        if: ${{ always() && !cancelled() }}
+        with:
+          name: before-after-screenshots
+          path: before-after/
+          retention-days: 5
+          if-no-files-found: ignore
 
   publish-report:
     if: ${{ always() && !cancelled() }}

@@ -68,14 +68,16 @@ PRs building on this should not silently deviate without a reason.
   `uid: trlxrdZVk`), which returns a fixed, non-randomized frame — good,
   deterministic input for both panels with zero extra provisioning work.
   Cover both in the initial specs rather than just the default one.
-- **Selectors: use the existing id-based DOM structure, don't add
-  `data-testid`s.** `src/matrix.js` currently renders elements with
-  classes like `svg-${id}`/`matrix-panel-${id}`, scoped by the
-  Grafana-assigned panel id — not designed as test hooks, but usable:
-  look up each provisioned panel's id from the dashboard JSON (`1` and
-  `2`) and select accordingly. Keep this PR test-only; if selector
-  fragility becomes a real problem once more specs exist, that's a
-  small, separately-justified follow-up PR adding `data-testid`s to
+- **Selectors: use `@grafana/plugin-e2e`'s `Panel` fixture, don't add
+  `data-testid`s.** `dashboardPage.getPanelById('1' | '2')` (from the
+  `gotoDashboardPage` fixture) returns a `Panel` object with a public
+  `.locator` scoped to that panel — no need to hand-roll a
+  `[class*="matrix-panel-1"]` selector against `src/matrix.js`'s
+  `svg-${id}`/`matrix-panel-${id}` classes. `readProvisionedDashboard({
+  fileName: 'dashboard.json' })` resolves the dashboard uid from
+  provisioning instead of hardcoding it. Keep this PR test-only; if
+  finer-grained selectors become necessary once more specs exist, that's
+  a small, separately-justified follow-up PR adding `data-testid`s to
   `matrix.js` — don't preemptively touch `src/` here.
 - **CI runtime: no changes needed now.** The `playwright-tests` job's
   existing `timeout-minutes: 15` budget is fine for smoke-only specs
@@ -87,76 +89,94 @@ PRs building on this should not silently deviate without a reason.
 
 ### 1. Smoke specs
 
-`tests/matrix-panel.spec.ts`, using `@grafana/plugin-e2e`'s fixtures
-(check `node_modules/@grafana/plugin-e2e`'s README/types once
-`yarn install` has run for the exact fixture API — e.g. whether it
-exposes a `dashboardPage`/`panelEditPage` fixture that can navigate
-straight to the provisioned dashboard by uid, versus needing a plain
-`page.goto('/d/<dashboard-uid>')`). Shape:
+`tests/matrix-panel.spec.ts`, implemented using `@grafana/plugin-e2e`'s
+`gotoDashboardPage`/`readProvisionedDashboard` fixtures and the `Panel`
+model's `getPanelById`/`getErrorIcon`/`.locator`:
 
 ```ts
 import { test, expect } from '@grafana/plugin-e2e';
 
 test.describe('esnet-matrix-panel', () => {
-  test('default panel renders without error', async ({ page }) => {
-    // navigate to the provisioned dashboard (check its uid once
-    // provisioning/dashboards/dashboard.json is loaded by a running
-    // instance), then locate panel id 1 ("Simple latency matrix").
-    const panel = page.locator('[class*="matrix-panel-1"]');
-    await expect(panel).toBeVisible();
-    await expect(panel.locator('svg')).toBeVisible();
-    await panel.screenshot({ path: 'test-results/screenshots/default-panel.png' });
+  test('default panel renders without error', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('1');
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('svg')).toBeVisible();
+    await panel.locator.screenshot({ path: 'test-results/screenshots/default-panel.png' });
   });
 
-  test('grouped/aggregated panel renders without error', async ({ page }) => {
-    const panel = page.locator('[class*="matrix-panel-2"]');
-    await expect(panel).toBeVisible();
-    await expect(panel.locator('svg')).toBeVisible();
-    await panel.screenshot({ path: 'test-results/screenshots/grouped-panel.png' });
+  test('grouped/aggregated panel renders without error', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('2');
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('svg')).toBeVisible();
+    await panel.locator.screenshot({ path: 'test-results/screenshots/grouped-panel.png' });
   });
 });
 ```
 
-Screenshots are captured via plain `locator.screenshot()` (not
-`expect(...).toHaveScreenshot()`), cropped to the panel element —
-deliberately excluding Grafana chrome (top nav, time picker) that adds
-noise and never changes — and written to `test-results/screenshots/` for
-upload as a CI artifact, not committed to the repo as regression
-baselines.
+`readProvisionedDashboard` resolves the dashboard uid from
+`provisioning/dashboards/dashboard.json` rather than hardcoding it, and
+`getErrorIcon()` gives an explicit assertion against Grafana's own panel
+error state (not just "some svg exists"). Screenshots are captured via
+plain `locator.screenshot()` (not `expect(...).toHaveScreenshot()`),
+cropped to the panel element — deliberately excluding Grafana chrome
+(top nav, time picker) that adds noise and never changes — and written
+to `test-results/screenshots/` for upload as a CI artifact, not
+committed to the repo as regression baselines.
 
-### 2. CI wiring: upload the smoke screenshots
+This has been implemented on the `upstream-clean-base` branch
+(`tests/matrix-panel.spec.ts`), verified against `@grafana/plugin-e2e`
+3.8.0's type definitions (the exact version pinned in `yarn.lock`) since
+running the real Docker-based suite isn't possible in this sandbox (see
+"Scope boundaries").
 
-Add an `actions/upload-artifact` step to the existing `playwright-tests`
-job (after the `yarn e2e` / test-run step) uploading
-`test-results/screenshots/`, so every PR run produces downloadable
-images without needing a separate mechanism for that alone.
+### 2. CI wiring: upload the smoke screenshots (implemented)
 
-### 3. Before/after screenshot pairs (new job)
+Added an `actions/upload-artifact` step to the existing
+`playwright-tests` job, right after the `yarn e2e` step, uploading
+`test-results/screenshots/` per Grafana-version matrix leg (name
+suffixed with `${{ matrix.GRAFANA_IMAGE.NAME }}-${{
+matrix.GRAFANA_IMAGE.VERSION }}` since the job fans out across
+versions), `if: always() && !cancelled()` so a failing run still leaves
+useful screenshots to inspect, and `if-no-files-found: ignore` so a
+build that fails before any screenshot is written doesn't error the
+upload step itself. Retention: 5 days, matching the existing `Archive
+Build` step.
 
-A second job, `pr-screenshot-diff`, gated to `pull_request` events only
-(no reason to run it on `push` to `master` — there's no "before" to
-diff against there):
+### 3. Before/after screenshot pairs (implemented: `pr-screenshot-diff` job)
 
-1. Checkout the merge-base of the PR head and its target branch, build
-   the plugin (`yarn build`), start Grafana via the same
-   `docker compose up -d` pattern the main job uses, run the *same*
-   `tests/matrix-panel.spec.ts` smoke specs against it (reusing them —
-   no separate capture spec), and save the resulting screenshots to
-   e.g. `before/`.
-2. Checkout the PR head commit, repeat the same build+run+screenshot
-   steps, saving to `after/`.
-3. Upload both directories together as one artifact (e.g.
-   `before-after-screenshots`), so a reviewer downloads a single zip and
-   can flip between matching filenames.
-4. Pin this job to a single Grafana version rather than the full
-   version matrix the main `playwright-tests` job uses — the purpose
-   here is reviewer illustration, not cross-version regression, so
-   running it once (e.g. against the newest version the matrix
-   resolves, or a hardcoded version matching the `@grafana/data`
-   dependency's `12.4.x` line) is sufficient. Fanning this out across
-   the full matrix would multiply cost for no illustrative benefit.
-5. Retention: match the existing `Archive Build` step's convention
-   (`retention-days: 5`) unless there's a reason to differ.
+A second job, `pr-screenshot-diff`, gated to
+`github.event_name == 'pull_request'` (no reason to run it on `push` to
+`master` — there's no "before" to diff against there) and to
+`needs.build.outputs.has-e2e == 'true'`:
+
+1. Checks out with `fetch-depth: 0` (needed to compute a merge-base),
+   installs deps and Playwright's Chromium once.
+2. Resolves `git merge-base origin/${{ github.base_ref }} HEAD` and
+   checks it out, builds the plugin (`yarn build`), starts Grafana via
+   the same `docker compose up -d` pattern the main job uses (pinned to
+   `GRAFANA_VERSION: '12.4.0'`, matching the `docker-compose-base.yaml`
+   default, rather than the full `resolve-versions` matrix — the
+   purpose here is reviewer illustration, not cross-version regression,
+   so running it once is sufficient and fanning out across the full
+   matrix would multiply cost for no illustrative benefit), waits for
+   it, runs the *same* `tests/matrix-panel.spec.ts` smoke specs
+   (reusing them — no separate capture spec), and copies
+   `test-results/screenshots/` into `before-after/before/`, then tears
+   the container down.
+3. Checks out `${{ github.sha }}` (the PR head) and repeats the same
+   build+run+screenshot steps, saving into `before-after/after/`.
+4. Uploads `before-after/` as one artifact (`before-after-screenshots`),
+   so a reviewer downloads a single zip and can flip between matching
+   filenames under `before/` and `after/`. Retention: 5 days, matching
+   the existing `Archive Build` step's convention.
 
 This job naturally grows in usefulness as later PRs add more specs to
 `tests/` — no changes needed to the job itself, since it just re-runs
@@ -171,10 +191,16 @@ than trying to anticipate the full option surface here.
 
 ### 5. Confirm it actually works end-to-end
 
-Push a branch, open a draft PR, and check: the `playwright-tests` job
-matrix goes green with real assertions running (not a no-op), the smoke
-screenshots upload as an artifact, and the new `pr-screenshot-diff` job
-produces a downloadable before/after pair.
+Push the branch and open a PR against `esnet/esnet-matrix-panel`, then
+check the Actions run: the `playwright-tests` job matrix goes green with
+real assertions running (not a no-op), the smoke screenshots upload as
+an artifact per Grafana version, and the new `pr-screenshot-diff` job
+produces a downloadable `before-after-screenshots` artifact. This step
+could not be exercised in the sandboxed environment this PR was drafted
+in (no Docker daemon, network policy blocks a standalone
+`grafana-server` download — see the main plan doc's "local/sandboxed
+screenshotting" note) — it needs a real GitHub Actions run once the PR
+is open.
 
 ## Scope boundaries
 
