@@ -276,6 +276,7 @@ jobs:
       - name: Capture "before" screenshots
         run: |
           git checkout ${{ steps.merge-base.outputs.sha }}
+          yarn install --frozen-lockfile
           yarn build
           docker compose pull
           ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ env.GRAFANA_VERSION }} GRAFANA_IMAGE=${{ env.GRAFANA_IMAGE }} docker compose up -d
@@ -297,6 +298,7 @@ jobs:
       - name: Capture "after" screenshots
         run: |
           git checkout ${{ github.sha }}
+          yarn install --frozen-lockfile
           yarn build
           docker compose pull
           ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ env.GRAFANA_VERSION }} GRAFANA_IMAGE=${{ env.GRAFANA_IMAGE }} docker compose up -d
