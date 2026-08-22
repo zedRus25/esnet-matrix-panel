@@ -1,31 +1,12 @@
 import { test, expect } from '@grafana/plugin-e2e';
 
 test.describe('esnet-matrix-panel', () => {
-  test.beforeEach(async ({ page }) => {
-    page.on('pageerror', (err) => console.log('[DEBUG-PAGEERROR]', err.stack || err.message));
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        console.log('[DEBUG-CONSOLE-ERROR]', msg.text());
-      }
-    });
-  });
-
-  test.afterEach(async ({ page }, testInfo) => {
-    if (testInfo.status !== 'passed') {
-      const panels = await page.locator('[data-viz-panel-key]').all();
-      for (const p of panels) {
-        const key = await p.getAttribute('data-viz-panel-key');
-        const html = await p.innerHTML().catch(() => '<failed to read innerHTML>');
-        console.log(`[DEBUG-PANEL-HTML] ${key}: ${html.slice(0, 800)}`);
-      }
-    }
-  });
-
   test('default panel renders without error', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
     const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('1');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-1')).toBeVisible();
@@ -37,6 +18,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('2');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-2')).toBeVisible();
@@ -48,6 +30,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('3');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-3')).toBeVisible();
@@ -59,6 +42,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('4');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-4')).toBeVisible();
@@ -70,6 +54,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('5');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-5')).toBeVisible();
@@ -81,6 +66,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('6');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-6')).toBeVisible();
@@ -92,6 +78,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('7');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-7')).toBeVisible();
@@ -103,6 +90,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('8');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-8')).toBeVisible();
@@ -114,6 +102,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('9');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-9')).toBeVisible();
@@ -125,6 +114,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('10');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-10')).toBeVisible();
@@ -136,6 +126,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('11');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-11')).toBeVisible();
@@ -147,6 +138,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('12');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-12')).toBeVisible();
@@ -158,6 +150,7 @@ test.describe('esnet-matrix-panel', () => {
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
 
     const panel = dashboardPage.getPanelById('13');
+    await panel.locator.scrollIntoViewIfNeeded();
     await expect(panel.locator).toBeVisible();
     await expect(panel.getErrorIcon()).not.toBeVisible();
     await expect(panel.locator.locator('#svg-13')).toBeVisible();
