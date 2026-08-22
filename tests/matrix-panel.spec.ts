@@ -10,6 +10,17 @@ test.describe('esnet-matrix-panel', () => {
     });
   });
 
+  test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status !== 'passed') {
+      const panels = await page.locator('[data-viz-panel-key]').all();
+      for (const p of panels) {
+        const key = await p.getAttribute('data-viz-panel-key');
+        const html = await p.innerHTML().catch(() => '<failed to read innerHTML>');
+        console.log(`[DEBUG-PANEL-HTML] ${key}: ${html.slice(0, 800)}`);
+      }
+    }
+  });
+
   test('default panel renders without error', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
     const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
