@@ -361,6 +361,10 @@ jobs:
           url: http://localhost:3000/login
 
       - name: Run smoke specs (before)
+        # The "before" checkout is the PR's merge-base -- it's expected to fail
+        # whatever the PR is fixing, that's the point of capturing it. Don't let
+        # that fail the job; the "after" run below is what must actually pass.
+        continue-on-error: true
         run: yarn e2e
 
       - name: Save "before" screenshots
