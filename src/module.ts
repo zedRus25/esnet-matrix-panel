@@ -255,6 +255,14 @@ plugin.setPanelOptions((builder) => {
     defaultValue: 'Value',
   });
 
+  builder.addBooleanSwitch({
+    path: 'fitToPanel',
+    name: 'Fit to panel width',
+    description: 'Scale cells down (never up) so the matrix fits the panel width',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
+
   builder.addNumberInput({
     path: 'cellSize',
     name: 'Cell Size',

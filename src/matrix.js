@@ -20,11 +20,10 @@ const sanitizeHtml = textUtil.sanitize;
  * @param {Category[]} column categories
  * @param {Category[]} row categories
  */
-function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories) {
+function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories, panelWidth) {
   const srcText = sanitizeHtml(options.sourceText),
     targetText = sanitizeHtml(options.targetText),
     valText = sanitizeHtml(options.valueText),
-    cellSize = options.cellSize,
     cellPadding = options.cellPadding / 100, // convert the cellPadding integer to a float that can be used by d3
     txtLength = options.txtLength,
     txtSize = options.txtSize / 10, //convert this val to EM scaling 90 = .9em 100 = 1em ... etc
@@ -60,6 +59,28 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   // Calculate the margins needed
   const colTxtOffset = maxColTxtLength * txtSize * 5 + 25;
   const rowTxtOffset = maxRowTxtLength * txtSize * 5 + 25;
+
+  // Row category header width is needed below to compute the left margin, so resolve it here
+  // (ahead of the "Row category configuration" block further down, which uses the same value).
+  const fitRowCategoryHeaderWidth = options.enableRowGrouping && rowCategories && rowCategories.length > 0
+    ? (options.rowCategoryHeaderWidth !== undefined ? options.rowCategoryHeaderWidth : 100)
+    : 0;
+
+  // cellSize is the "natural" configured cell size. When fitToPanel is enabled and the natural
+  // matrix width would overflow the panel, shrink (never grow) the effective cell size used for
+  // all layout math below so the matrix fits within the panel's width. The rendered SVG is the
+  // cell grid PLUS the fixed left margin reserved for row labels (rowTxtOffset), so that margin
+  // has to be subtracted from panelWidth before dividing -- otherwise the "fitted" cell grid still
+  // overflows the panel by exactly the margin's width once it's added back on.
+  let cellSize = options.cellSize;
+  if (options.fitToPanel && panelWidth) {
+    const marginLeft = rowTxtOffset + fitRowCategoryHeaderWidth;
+    const naturalWidth = colNames.length * cellSize + marginLeft;
+    if (naturalWidth > panelWidth) {
+      const availableForCells = panelWidth - marginLeft;
+      cellSize = Math.max(1, availableForCells) / colNames.length;
+    }
+  }
 
   // Category header configuration
   const colCategoryHeaderHeight = options.enableColGrouping && colCategories && colCategories.length > 0
@@ -590,7 +611,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           return 25 + i * 75;
         })
         .attr('cy', 20);
-      svg
+      svgLegend
         .append('g')
         .selectAll('legendLabels')
         .data(legend)
@@ -706,14 +727,14 @@ const getStyles = (theme: GrafanaTheme2) => {
  * @param {Category[]} row categories
  * @return {SvgInHtml} A d3 callback
  */
-function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, rowCategories) {
+function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, rowCategories, panelWidth) {
   /* eslint-disable react-hooks/rules-of-hooks */
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const ref = useD3((svg) => {
-    createViz(svg, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories);
+    createViz(svg, id, rowNames, colNames, matrix, options, theme, legend, styles, colCategories, rowCategories, panelWidth);
   });
   return ref;
 }
 
-export { matrix };
+export { matrix, createViz };

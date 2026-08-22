@@ -15,6 +15,7 @@ export interface MatrixOptions {
   rowCategoryGap: number;
   cellSize: number;
   cellPadding: number;
+  fitToPanel: boolean;
   txtLength: number;
   txtSize: number;
   nullColor: string;
