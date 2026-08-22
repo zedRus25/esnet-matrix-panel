@@ -189,6 +189,49 @@ extend `provisioning/dashboards/dashboard.json` with additional panels
 covering them, and add a matching spec — coordinate this per-PR rather
 than trying to anticipate the full option surface here.
 
+**General requirement for every later PR (A1+): the before/after diff
+must actually exercise the change, not just prove nothing crashed.**
+`pr-screenshot-diff` re-runs the *same* `tests/matrix-panel.spec.ts`
+specs against the merge-base and the PR head. Because
+`provisioning/dashboards/dashboard.json` and `tests/` are ordinary
+tracked files (not regenerated per-ref), whether "before" and "after"
+actually *look* different depends entirely on whether the changed
+option/behavior is turned on somewhere the existing specs already
+screenshot. A PR that adds a new option but leaves every provisioned
+panel at its old defaults will get a fully green `pr-screenshot-diff`
+job whose before/after images are pixel-identical — green, but not
+proof of anything. Concretely, for each PR that changes rendering:
+
+- Prefer editing an **existing provisioned panel's `options`** (not
+  adding a new panel + new spec) to turn the new behavior on in a way
+  that's visually obvious, and adjust `gridPos`/data alongside it if
+  needed to make the effect visible (see A1's fitToPanel fix: same
+  panel id, same `default-panel.png` screenshot, just `fitToPanel: true`
+  + a narrowed `gridPos.w` + a larger `cellSize`). This works because
+  the diff job checks out `provisioning/` at each ref independently —
+  the merge-base checkout naturally reverts the option back off for
+  "before" while the PR-head checkout has it on for "after", with zero
+  new/fragile e2e test needed.
+- Only add a brand-new panel + new spec when the feature genuinely has
+  no existing panel to attach to. Watch out for the trap: a *new* test
+  spec targeting a *new* panel id will fail the "before" run, since
+  `tests/` gets restored to the PR-head version for both before/after
+  (see the "Capture before screenshots" step's `git checkout ... --
+  tests/`) but `provisioning/` does not — so the new panel referenced by
+  the new spec won't exist yet in the "before" checkout. If a new panel
+  is unavoidable, either guard the new spec so it's additive-only
+  (doesn't get restored into "before"), or accept that this feature's
+  before/after pair will just be "doesn't exist" vs "exists" rather
+  than a same-panel comparison.
+- A PR that's an intentional zero-behavior-change refactor (e.g. A3's
+  bundle-size cleanup) is the one case where pixel-identical before/after
+  is the *correct*, expected outcome — call that out explicitly in the
+  PR description so a reviewer doesn't mistake it for an oversight.
+- Before calling a PR's CI green, actually look at the `pr-screenshot-diff`
+  job's `before-after-screenshots` artifact (or the published comparison
+  page) and confirm the two images differ in the way the PR claims —
+  don't just check the job's pass/fail conclusion.
+
 ### 5. Confirm it actually works end-to-end
 
 Push the branch and open a PR against `esnet/esnet-matrix-panel`, then
