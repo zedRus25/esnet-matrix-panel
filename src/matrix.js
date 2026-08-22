@@ -1,5 +1,6 @@
 import { useD3 } from './useD3.js';
-import * as d3 from './d3.min.js';
+import { select, local } from 'd3-selection';
+import 'd3-transition';
 import { css } from '@emotion/css';
 import { GrafanaTheme2, textUtil } from '@grafana/data';
 import { useStyles2, useTheme2 } from '@grafana/ui';
@@ -163,16 +164,14 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     elem.replaceChildren();
   }
 
-  const tooltip = d3
-    .select(elem)
+  const tooltip = select(elem)
     .append('div')
     .attr('class', `${styles.tooltip} matrix-tooltip-${id}`)
     .style('opacity', 0);
 
   // append the svg object to the body of the page
   const svgClass = `svg-${id}`;
-  const svgMatrix = d3
-    .select(elem)
+  const svgMatrix = select(elem)
     .append('svg')
     .attr('id', svgClass)
     .attr('width', width + margin.left + margin.right)
@@ -393,9 +392,9 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   //build the matrix /////////////////////////////////////////
 
   //use d3's local stuff to record where we are in the outer loop
-  const outer = d3.local();
+  const outer = local();
 
-  const svg_g = d3.select('#' + svgClass).selectAll('svg > g');
+  const svg_g = select('#' + svgClass).selectAll('svg > g');
 
   //create the area where we will put all the boxes
   const rectClass = `rectArea-${id}`;
@@ -453,7 +452,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     .on('mouseover', function (event, d) {
       if (d !== -1) {
         //turn down the opacity slightly to show the hover
-        d3.select(this)
+        select(this)
           // .attr('opacity', '.75')
           .attr('width', x.bandwidth() + 5)
           .attr('height', y.bandwidth() + 5)
@@ -497,7 +496,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     })
     .on('mouseout', function () {
       //reset the opacity and move the tooltip out of the way. If we dont move it it will prevent hovering over other boxes.
-      d3.select(this)
+      select(this)
         // .attr('opacity', '1')
         .attr('transform', 'translate(0, 0)')
         .attr('width', x.bandwidth())
@@ -519,8 +518,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   if (options.showLegend) {
     const legendClass = `legend-${id}`;
 
-    d3
-      .select(elem)
+    select(elem)
       .append('div')
       .attr('class', `matrix-legend-${id}`)
       .append('svg')
@@ -528,7 +526,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
 ////////////// range - bar //////////////////////
     if (options.legendType === 'range') {
-      const svgLegend = d3.select(`#${legendClass}`);
+      const svgLegend = select(`#${legendClass}`);
       svgLegend
         // legend bar starts at x=25, legend squares are 10x10, allow 9px per label character
         .attr('width', 25 + (legend.length - 1) * 10 + legend[legend.length - 1].label.length * 9)
@@ -569,7 +567,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         .attr('fill', theme.colors.text.primary);
     } else {
 /////////// categorical - circles ////////////////////////////
-      const svgLegend = d3.select(`#${legendClass}`);
+      const svgLegend = select(`#${legendClass}`);
       svgLegend
         // legend bar starts at x=25, legend circles are drawn every 75px and have a 20px diameter,
         // allow 9px per label character
@@ -608,11 +606,11 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
 function truncateLabel(text, width) {
   text.each(function () {
-    let label = d3.select(this).text();
+    let label = select(this).text();
     if (label.length > width) {
       label = label.slice(0, width) + '...';
     }
-    d3.select(this).text(label);
+    select(this).text(label);
   });
 }
 

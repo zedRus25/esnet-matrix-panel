@@ -33,7 +33,6 @@ export default defineConfig([
       'playwright/.auth/',
       '**/.idea',
       '**/.eslintcache',
-      'src/d3.min.js',
     ],
   },
   ...baseConfig,
