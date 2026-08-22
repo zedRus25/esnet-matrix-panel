@@ -201,7 +201,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       .text(pos.name);
 
     // Apply truncation and tooltips
-    label.call(truncateLabel, txtLength);
+    label.call(truncateLabel, Math.min(colTxtOffset - 25, txtLength * txtSize * 5));
     label.on('mouseover', function (event, d) {
       tooltip
         .html(sanitizeHtml(pos.name))
@@ -243,7 +243,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       .attr('fill', theme.colors.text.primary)
       .text(pos.name);
 
-    label.call(truncateLabel, txtLength);
+    label.call(truncateLabel, Math.min(rowTxtOffset - 25, txtLength * txtSize * 5));
     label.on('mouseover', function (event, d) {
       tooltip
         .html(sanitizeHtml(pos.name))
@@ -294,7 +294,6 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         const groupWidth = (endPos.x + cellSize) - startPos.x;
 
         // Category label rotated vertically; truncated to fit colCategoryHeaderHeight.
-        const colGroupLabelMaxChars = Math.max(3, Math.floor((colCategoryHeaderHeight - 12) / (txtSize * 1.2 * 8)));
         categoryHeaderGroup.append('text')
           .attr('transform', `translate(${groupX + cellSize / 2}, ${colCategoryHeaderHeight - 12})rotate(-90)`)
           .attr('text-anchor', 'start')
@@ -303,7 +302,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           .attr('fill', theme.colors.text.primary)
           .style('font-family', theme.typography.fontFamily)
           .text(category.name)
-          .call(truncateLabel, colGroupLabelMaxChars)
+          .call(truncateLabel, colCategoryHeaderHeight - 12)
           .on('mouseover', function (event, d) {
             tooltip
               .html(sanitizeHtml(category.name))
@@ -357,7 +356,6 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
         // Group label: right-aligned so text grows leftward into rowCategoryHeaderWidth.
         // Truncated when wider than the allocated area; tooltip shows full name.
-        const groupLabelMaxChars = Math.max(3, Math.floor((rowCategoryHeaderWidth - 10) / (txtSize * 1.2 * 8)));
         rowCategoryHeaderGroup.append('text')
           .attr('x', rowCategoryHeaderWidth - 5)
           .attr('y', groupY + cellSize / 2)
@@ -368,7 +366,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           .attr('fill', theme.colors.text.primary)
           .style('font-family', theme.typography.fontFamily)
           .text(category.name)
-          .call(truncateLabel, groupLabelMaxChars)
+          .call(truncateLabel, rowCategoryHeaderWidth - 10)
           .on('mouseover', function (event, d) {
             tooltip
               .html(sanitizeHtml(category.name))
@@ -606,13 +604,30 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
   }
 }
 
-function truncateLabel(text, width) {
+/** Truncate a d3 text selection's content to fit a pixel width budget,
+ * measuring the actual rendered glyph widths rather than assuming a
+ * fixed average character width.
+ * @param {Selection} text d3 selection of <text> elements (labels already set)
+ * @param {number} maxWidthPx Maximum rendered width, in pixels, including the ellipsis
+ */
+function truncateLabel(text, maxWidthPx) {
   text.each(function () {
-    let label = d3.select(this).text();
-    if (label.length > width) {
-      label = label.slice(0, width) + '...';
+    const node = d3.select(this);
+    const fullLabel = node.text();
+    if (node.node().getComputedTextLength() <= maxWidthPx) {
+      return;
     }
-    d3.select(this).text(label);
+    let lo = 0, hi = fullLabel.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      node.text(fullLabel.slice(0, mid) + '...');
+      if (node.node().getComputedTextLength() <= maxWidthPx) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    node.text(lo > 0 ? fullLabel.slice(0, lo) + '...' : '...');
   });
 }
 
@@ -716,4 +731,4 @@ function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, 
   return ref;
 }
 
-export { matrix };
+export { matrix, truncateLabel };
