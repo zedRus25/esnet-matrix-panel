@@ -21,6 +21,11 @@ export default defineConfig<PluginOptions>({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
+  /* Run serially on CI -- all e2e tests share a single Grafana container, and older
+   * Grafana versions fall badly behind under N-way concurrent dashboard loads, causing
+   * panels to miss the 30s test timeout even on retry. Serial execution removes that
+   * contention entirely; the suite is small enough that this costs little wall-clock time. */
+  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -32,8 +37,9 @@ export default defineConfig<PluginOptions>({
     trace: 'on-first-retry',
 
     /* Tall enough to fit the full smoke-test dashboard (grid rows up to y=60) without
-     * scrolling -- Grafana lazy-mounts panels outside the viewport, so a short viewport
-     * leaves lower-row panels never rendered into the DOM at all. */
+     * scrolling -- Grafana lazy-mounts panels outside the viewport. This alone isn't
+     * sufficient on a loaded/slow backend (see `workers` above for the main fix), but it
+     * removes viewport size as a variable. */
     viewport: { width: 1280, height: 2400 },
   },
 

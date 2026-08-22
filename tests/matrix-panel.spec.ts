@@ -1,17 +1,6 @@
 import { test, expect } from '@grafana/plugin-e2e';
 
 test.describe('esnet-matrix-panel', () => {
-  test.beforeEach(async ({ page }) => {
-    page.on('console', (msg) => {
-      if (msg.type() === 'error' || msg.type() === 'warning') {
-        console.log(`[browser ${msg.type()}] ${msg.text()}`);
-      }
-    });
-    page.on('pageerror', (err) => {
-      console.log(`[browser pageerror] ${err.stack || err.message}`);
-    });
-  });
-
   test('default panel renders without error', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
     const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
     const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
