@@ -89,7 +89,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     } else if (v === -1) {
       return defaultColor;
     } else {
-      return valueField!.display(v).color;
+      return valueField!.display!(v).color!;
     }
   }
 
@@ -230,7 +230,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         col: colName,
         val: v,
         color: colorMap(v),
-        display: valueField!.display(v),
+        display: valueField!.display!(v),
       };
     }
   });
@@ -259,9 +259,9 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     tempValues.forEach((val) => {
       // find display values, unit & color for each
       // store in array
-      let text = valueField!.display(val).text;
-      if (valueField!.display(val).suffix) {
-        text = text + ` ${valueField!.display(val).suffix}`;
+      let text = valueField!.display!(val).text;
+      if (valueField!.display!(val).suffix) {
+        text = text + ` ${valueField!.display!(val).suffix}`;
       }
         legendData.push({
           label: text,
