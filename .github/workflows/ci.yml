@@ -201,16 +201,27 @@ jobs:
         if: ${{ steps.docker-cache.outputs.cache-hit == 'true' }}
         run: docker load -i /tmp/docker-cache/grafana-image.tar
 
+      # docker compose has no top-level `image:` for this service (it's build-only),
+      # so `docker compose pull` never fetches it and buildkit doesn't leave the FROM
+      # base image locally tagged -- pull it ourselves so `docker save` below has a
+      # reference to find, and so the compose build reuses it instead of the daemon
+      # implicitly fetching it mid-build.
+      - name: Pull Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
+        run: docker pull grafana/${{ matrix.GRAFANA_IMAGE.NAME }}:${{ matrix.GRAFANA_IMAGE.VERSION }}
+
+      - name: Export Grafana base image for cache
+        # nightly is a moving tag, caching it would pin stale builds
+        if: ${{ matrix.GRAFANA_IMAGE.VERSION != 'nightly' && steps.docker-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save grafana/${{ matrix.GRAFANA_IMAGE.NAME }}:${{ matrix.GRAFANA_IMAGE.VERSION }} -o /tmp/docker-cache/grafana-image.tar
+
       - name: Start Grafana
         run: |
           docker compose pull
           ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ matrix.GRAFANA_IMAGE.VERSION }} GRAFANA_IMAGE=${{ matrix.GRAFANA_IMAGE.NAME }} docker compose up -d
-
-      - name: Export Grafana base image for cache
-        if: ${{ matrix.GRAFANA_IMAGE.VERSION != 'nightly' && steps.docker-cache.outputs.cache-hit != 'true' }}
-        run: |
-          mkdir -p /tmp/docker-cache
-          docker save grafana/${{ matrix.GRAFANA_IMAGE.NAME }}:${{ matrix.GRAFANA_IMAGE.VERSION }} -o /tmp/docker-cache/grafana-image.tar
 
       - name: Wait for grafana server
         uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
@@ -312,6 +323,22 @@ jobs:
         if: ${{ steps.docker-cache.outputs.cache-hit == 'true' }}
         run: docker load -i /tmp/docker-cache/grafana-image.tar
 
+      # docker compose has no top-level `image:` for this service (it's build-only),
+      # so `docker compose pull` never fetches it and buildkit doesn't leave the FROM
+      # base image locally tagged -- pull it ourselves so `docker save` below has a
+      # reference to find, and so the compose build reuses it instead of the daemon
+      # implicitly fetching it mid-build.
+      - name: Pull Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
+        run: docker pull grafana/${{ env.GRAFANA_IMAGE }}:${{ env.GRAFANA_VERSION }}
+
+      - name: Export Grafana base image for cache
+        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save grafana/${{ env.GRAFANA_IMAGE }}:${{ env.GRAFANA_VERSION }} -o /tmp/docker-cache/grafana-image.tar
+
       - name: Resolve merge base
         id: merge-base
         run: echo "sha=$(git merge-base origin/${{ github.base_ref }} HEAD)" >> $GITHUB_OUTPUT
@@ -332,12 +359,6 @@ jobs:
         uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
         with:
           url: http://localhost:3000/login
-
-      - name: Export Grafana base image for cache
-        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
-        run: |
-          mkdir -p /tmp/docker-cache
-          docker save grafana/${{ env.GRAFANA_IMAGE }}:${{ env.GRAFANA_VERSION }} -o /tmp/docker-cache/grafana-image.tar
 
       - name: Run smoke specs (before)
         run: yarn e2e
@@ -489,3 +510,16 @@ jobs:
             git commit -m "ci: publish before/after comparison and rebuild index (run ${RUN_DIR})"
             git push origin gh-pages
           fi
+
+      - name: Link report in job summary
+        run: |
+          DATE_DIR="$(date -u +%Y%m%d)"
+          RUN_DIR="${{ github.run_number }}"
+          OWNER_LOWER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          BASE_URL="https://${OWNER_LOWER}.github.io/${REPO_NAME}"
+          {
+            echo "### Playwright report"
+            echo "- [Report index](${BASE_URL}/)"
+            echo "- [This run's reports (${DATE_DIR}/${RUN_DIR})](${BASE_URL}/${DATE_DIR}/${RUN_DIR}/)"
+          } >> "$GITHUB_STEP_SUMMARY"
