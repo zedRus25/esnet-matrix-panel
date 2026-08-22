@@ -20,6 +20,7 @@
   "graphTooltip": 0,
   "id": 1,
   "links": [],
+  "preload": true,
   "panels": [
     {
       "datasource": {
@@ -572,7 +573,6 @@
       "type": "esnet-matrix-panel"
     }
   ],
-  "preload": false,
   "refresh": "",
   "schemaVersion": 42,
   "tags": [],
