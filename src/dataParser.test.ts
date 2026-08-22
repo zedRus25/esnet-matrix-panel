@@ -53,7 +53,7 @@ function buildPanelData(withStatusRegion: boolean): PanelData {
   }
   const frame = toDataFrame({ fields });
   const valueField = frame.fields.find((f) => f.name === 'value')!;
-  valueField.display = (v: number) => ({ text: String(v), numeric: v, color: '#000000' });
+  valueField.display = (v: unknown) => ({ text: String(v), numeric: v as number, color: '#000000' });
   return { series: [frame] } as unknown as PanelData;
 }
 
