@@ -188,15 +188,40 @@ jobs:
       - name: Install dev dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Cache Grafana base image
+        # nightly is a moving tag, caching it would pin stale builds
+        if: matrix.GRAFANA_IMAGE.VERSION != 'nightly'
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-cache/grafana-image.tar
+          key: grafana-base-image-${{ matrix.GRAFANA_IMAGE.NAME }}-${{ matrix.GRAFANA_IMAGE.VERSION }}
+
+      - name: Load cached Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit == 'true' }}
+        run: docker load -i /tmp/docker-cache/grafana-image.tar
+
       - name: Start Grafana
         run: |
           docker compose pull
           ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ matrix.GRAFANA_IMAGE.VERSION }} GRAFANA_IMAGE=${{ matrix.GRAFANA_IMAGE.NAME }} docker compose up -d
 
+      - name: Export Grafana base image for cache
+        if: ${{ matrix.GRAFANA_IMAGE.VERSION != 'nightly' && steps.docker-cache.outputs.cache-hit != 'true' }}
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save grafana/${{ matrix.GRAFANA_IMAGE.NAME }}:${{ matrix.GRAFANA_IMAGE.VERSION }} -o /tmp/docker-cache/grafana-image.tar
+
       - name: Wait for grafana server
         uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
         with:
           url: http://localhost:3000/login
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('yarn.lock') }}
 
       - name: Install Playwright Browsers
         run: yarn exec playwright install chromium --with-deps
@@ -267,8 +292,25 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('yarn.lock') }}
+
       - name: Install Playwright Browsers
         run: yarn exec playwright install chromium --with-deps
+
+      - name: Cache Grafana base image
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-cache/grafana-image.tar
+          key: grafana-base-image-${{ env.GRAFANA_IMAGE }}-${{ env.GRAFANA_VERSION }}
+
+      - name: Load cached Grafana base image
+        if: ${{ steps.docker-cache.outputs.cache-hit == 'true' }}
+        run: docker load -i /tmp/docker-cache/grafana-image.tar
 
       - name: Resolve merge base
         id: merge-base
@@ -290,6 +332,12 @@ jobs:
         uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
         with:
           url: http://localhost:3000/login
+
+      - name: Export Grafana base image for cache
+        if: ${{ steps.docker-cache.outputs.cache-hit != 'true' }}
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save grafana/${{ env.GRAFANA_IMAGE }}:${{ env.GRAFANA_VERSION }} -o /tmp/docker-cache/grafana-image.tar
 
       - name: Run smoke specs (before)
         run: yarn e2e
