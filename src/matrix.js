@@ -590,7 +590,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           return 25 + i * 75;
         })
         .attr('cy', 20);
-      svg
+      svgLegend
         .append('g')
         .selectAll('legendLabels')
         .data(legend)
