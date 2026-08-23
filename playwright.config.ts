@@ -21,6 +21,11 @@ export default defineConfig<PluginOptions>({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
+  /* GH-hosted ubuntu-latest runners have 2 vCPUs, shared with the Grafana
+   * container these tests exercise. 4 workers oversubscribed that to the
+   * point where tests would pass the first few, then queue behind CPU
+   * contention and blow the 30s test timeout on every retry. */
+  workers: process.env.CI ? 2 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -30,6 +35,11 @@ export default defineConfig<PluginOptions>({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Tall enough to fit the full smoke-test dashboard (grid rows up to y=60) without
+     * scrolling. Panel mounting itself no longer depends on scroll position -- the
+     * dashboard sets `preload: true` -- but this still avoids scrolling in screenshots. */
+    viewport: { width: 1280, height: 2400 },
   },
 
   /* Configure projects for major browsers */
