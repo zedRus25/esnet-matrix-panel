@@ -19,6 +19,9 @@ export interface MatrixOptions {
   txtSize: number;
   nullColor: string;
   defaultColor: string;
+  cellColorMode: string;
+  colorScaleMin: number;
+  colorScaleMax: number;
   sourceText: string;
   targetText: string;
   valueText: string;
