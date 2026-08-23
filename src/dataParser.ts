@@ -18,14 +18,14 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   if (series === null || series === undefined) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-series' };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-series' };
   }
   // set fields
   const sourceField = series.fields.find((f: Field) =>
@@ -76,7 +76,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   ) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-field-mapping' };
   }
 
   // function that maps value to color specified by Standard Options panel.
@@ -161,12 +161,12 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   if (rowNamesSet.size === 0 || colNamesSet.size === 0) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-rows-or-cols' };
   }
 
   const numSquaresInMatrix = rowNamesSet.size * colNamesSet.size;
   if (numSquaresInMatrix > 50000) {
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: 'too many inputs', legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: 'too many inputs', legend: null, reason: 'too-many-cells' };
   }
 
   const rowNames: any[] = Array.from(rowNamesSet);

@@ -11,6 +11,12 @@ interface Props extends PanelProps<MatrixOptions> {
   options: MatrixOptions;
 }
 
+const NO_DATA_MESSAGES: Record<string, string> = {
+  'no-series': "No data returned by the query. Check the panel's data source and query.",
+  'no-field-mapping': "Couldn't find Rows, Columns, or Value fields in the query result. Map them under Row/Column Options, or add a string field for Rows/Columns and a numeric field for Value.",
+  'no-rows-or-cols': 'The query returned data, but no row or column headings could be built from it. Check the Rows/Columns field mapping.',
+};
+
 export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
   const theme = useTheme2();
   // console.log(options);
@@ -31,7 +37,8 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
     || parsedData.colNames === null
     || parsedData.data === null
     || parsedData.legend === null) {
-    return <div>No data</div>;
+    const message = parsedData.reason ? NO_DATA_MESSAGES[parsedData.reason] : undefined;
+    return <div>{message ?? 'No data'}</div>;
   }
 
   const ref = Matrix.matrix(
