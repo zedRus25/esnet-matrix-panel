@@ -11,6 +11,10 @@ on:
       - main
       - upstream-master-mirror
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build, lint and unit tests
@@ -437,6 +441,9 @@ jobs:
 
   publish-report:
     if: ${{ always() && !cancelled() }}
+    concurrency:
+      group: gh-pages-publish
+      cancel-in-progress: false
     permissions:
       contents: write
       id-token: write
@@ -520,7 +527,18 @@ jobs:
           fi
           if ! git diff --cached --quiet; then
             git commit -m "ci: publish before/after comparison and rebuild index (run ${RUN_DIR})"
-            git push origin gh-pages
+            for attempt in 1 2 3 4 5; do
+              if git push origin gh-pages; then
+                break
+              fi
+              if [ "$attempt" = 5 ]; then
+                echo "::error::failed to push to gh-pages after ${attempt} attempts"
+                exit 1
+              fi
+              sleep $((attempt * 3))
+              git fetch origin gh-pages
+              git rebase origin/gh-pages
+            done
           fi
 
       - name: Link report in job summary
