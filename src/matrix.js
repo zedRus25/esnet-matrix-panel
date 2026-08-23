@@ -449,6 +449,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         return defaultColor;
       }
     })
+    .attr('stroke', (d) => (options.outlineNoDataCells && d === -1 ? '#999999' : 'none'))
+    .attr('stroke-width', (d) => (options.outlineNoDataCells && d === -1 ? 1 : 0))
     // the tooltip for boxes
     .on('mouseover', function (event, d) {
       if (d !== -1) {
@@ -590,7 +592,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           return 25 + i * 75;
         })
         .attr('cy', 20);
-      svg
+      svgLegend
         .append('g')
         .selectAll('legendLabels')
         .data(legend)

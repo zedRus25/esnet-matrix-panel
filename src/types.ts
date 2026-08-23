@@ -19,6 +19,7 @@ export interface MatrixOptions {
   txtSize: number;
   nullColor: string;
   defaultColor: string;
+  outlineNoDataCells: boolean;
   sourceText: string;
   targetText: string;
   valueText: string;
