@@ -16,6 +16,7 @@ const grafanaESModules = [
   '@grafana/schema',
   '@wojtekmaj/date-utils',
   'd3',
+  'd3-array',
   'd3-color',
   'd3-force',
   'd3-interpolate',
