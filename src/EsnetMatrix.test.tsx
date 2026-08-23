@@ -64,13 +64,13 @@ describe('EsnetMatrix accessible table view', () => {
     // 1 header row + 2 data rows
     expect(rows).toHaveLength(3);
 
-    const columnHeaders = Array.from(table!.querySelectorAll('th[scope="col"]')).map((el) => el.textContent);
+    const columnHeaders = Array.from(table!.querySelectorAll('th[scope="col"]')).map((el: Element) => el.textContent);
     expect(columnHeaders).toEqual(['', 'dc-a', 'dc-b']);
 
-    const rowHeaders = Array.from(table!.querySelectorAll('th[scope="row"]')).map((el) => el.textContent);
+    const rowHeaders = Array.from(table!.querySelectorAll('th[scope="row"]')).map((el: Element) => el.textContent);
     expect(rowHeaders).toEqual(['host-01', 'host-02']);
 
-    const cells = Array.from(table!.querySelectorAll('td')).map((el) => el.textContent);
+    const cells = Array.from(table!.querySelectorAll('td')).map((el: Element) => el.textContent);
     expect(cells).toEqual(['1', '', '2 ms', '']);
   });
 });
