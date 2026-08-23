@@ -243,7 +243,7 @@ jobs:
 
       - name: Run Playwright tests
         id: run-tests
-        run: yarn e2e
+        run: yarn e2e --reporter=list,html
 
       - name: Upload smoke screenshots
         uses: actions/upload-artifact@v7
@@ -369,7 +369,7 @@ jobs:
         # whatever the PR is fixing, that's the point of capturing it. Don't let
         # that fail the job; the "after" run below is what must actually pass.
         continue-on-error: true
-        run: yarn e2e
+        run: yarn e2e --reporter=list,html
 
       - name: Save "before" screenshots
         run: |
@@ -391,7 +391,7 @@ jobs:
           url: http://localhost:3000/login
 
       - name: Run smoke specs (after)
-        run: yarn e2e
+        run: yarn e2e --reporter=list,html
 
       - name: Save "after" screenshots
         run: |
