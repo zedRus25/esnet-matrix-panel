@@ -325,6 +325,13 @@ plugin.setPanelOptions((builder) => {
     category: OptionsCategory,
     defaultValue: '#E6E6E6',
   });
+  builder.addBooleanSwitch({
+    path: 'accessibleTableView',
+    name: 'Render Accessible Table',
+    description: 'Render a screen-reader-only HTML table alongside the matrix with the same data',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
 
   /////////----------- Link URL options ---------------////////////////
   builder.addBooleanSwitch({

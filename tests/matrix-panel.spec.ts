@@ -210,4 +210,57 @@ test.describe('esnet-matrix-panel', () => {
     await expect(panel.locator.locator('#svg-17')).toBeVisible();
     await panel.locator.screenshot({ path: 'test-results/screenshots/custom-grouping-headers-panel.png' });
   });
+
+  test('accessible table view panel renders without error', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('18');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('#svg-18')).toBeVisible();
+    await panel.locator.screenshot({ path: 'test-results/screenshots/accessible-table-view-panel.png' });
+  });
+
+  test('keyboard navigation moves the roving tabindex between cells', async ({ gotoDashboardPage, readProvisionedDashboard, page }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('18');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+
+    const firstCell = panel.locator.locator('#svg-18 rect[data-row-idx="0"][data-col-idx="0"]');
+    const secondCell = panel.locator.locator('#svg-18 rect[data-row-idx="0"][data-col-idx="1"]');
+    await expect(firstCell).toHaveAttribute('tabindex', '0');
+
+    await firstCell.focus();
+    await page.keyboard.press('ArrowRight');
+
+    await expect(secondCell).toHaveAttribute('tabindex', '0');
+    await expect(firstCell).toHaveAttribute('tabindex', '-1');
+    await expect(secondCell).toBeFocused();
+  });
+
+  test('accessible table view exposes the matrix data as a native HTML table', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('18');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+
+    const table = panel.locator.locator('table');
+    await expect(table).toHaveCount(1);
+    await expect(table.locator('th[scope="row"]')).toHaveCount(3);
+    await expect(table.locator('th[scope="col"]')).toHaveCount(4); // blank corner cell + 3 columns
+    await expect(table).toContainText('host-01');
+    await expect(table).toContainText('host-02');
+    await expect(table).toContainText('host-03');
+    await expect(table).toContainText('10');
+    await expect(table).toContainText('15');
+  });
 });

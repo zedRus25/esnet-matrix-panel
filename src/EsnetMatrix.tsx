@@ -11,6 +11,20 @@ interface Props extends PanelProps<MatrixOptions> {
   options: MatrixOptions;
 }
 
+// Visually hides content while keeping it in the accessibility tree (unlike
+// `display: none`, which removes it from both the layout and the a11y tree).
+const visuallyHiddenStyle: React.CSSProperties = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+};
+
 export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id }) => {
   const theme = useTheme2();
   // console.log(options);
@@ -49,6 +63,34 @@ export const EsnetMatrix: React.FC<Props> = ({ options, data, width, height, id 
   return (
     <CustomScrollbar autoHeightMin="100%">
       <div ref={ref} id={thisPanelClass}></div>
+      {options.accessibleTableView && (
+        <table style={visuallyHiddenStyle}>
+          <caption>{`${parsedData.rowNames.length} by ${parsedData.colNames.length} matrix`}</caption>
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              {parsedData.colNames.map((colName, colIdx) => (
+                <th scope="col" key={`col-${colIdx}`}>{colName}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {parsedData.rowNames.map((rowName, rowIdx) => (
+              <tr key={`row-${rowIdx}`}>
+                <th scope="row">{rowName}</th>
+                {parsedData.colNames.map((colName, colIdx) => {
+                  const cell = parsedData.data[rowIdx][colIdx];
+                  return (
+                    <td key={`cell-${rowIdx}-${colIdx}`}>
+                      {typeof cell === 'number' ? '' : `${cell.display.text}${cell.display.suffix ? ' ' + cell.display.suffix : ''}`}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </CustomScrollbar>
   );
 };

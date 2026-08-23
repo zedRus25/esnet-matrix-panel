@@ -713,6 +713,31 @@
       ],
       "title": "Custom grouping header dimensions",
       "type": "esnet-matrix-panel"
+    },
+    {
+      "datasource": { "type": "grafana-testdata-datasource", "uid": "trlxrdZVk" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 15, "w": 8, "x": 0, "y": 75 },
+      "id": 18,
+      "options": {
+        "accessibleTableView": true, "addUrl": false, "cellPadding": 10, "cellSize": 18,
+        "defaultColor": "#E6E6E6", "enableColGrouping": false, "enableRowGrouping": false,
+        "inputList": false, "legendType": "range", "nullColor": "#E6E6E6",
+        "showLegend": false, "sortType": "natural-asc", "sourceField": "Source", "sourceText": "From",
+        "targetField": "Destination", "targetText": "To", "txtLength": 50, "txtSize": 12,
+        "valueText": "Value"
+      },
+      "pluginVersion": "2.0.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-testdata-datasource", "uid": "db84e60d-b92a-4089-82cb-34842fb1754b" },
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"Time\", \"type\": \"time\" },\n      { \"text\": \"Source\", \"type\": \"string\" },\n      { \"text\": \"Destination\", \"type\": \"string\" },\n      { \"text\": \"Value\", \"type\": \"number\" }\n    ],\n    \"rows\": [\n      [1609459200000, \"host-01\", \"host-02\", 10],\n      [1609459200000, \"host-01\", \"host-03\", 15],\n      [1609459200000, \"host-02\", \"host-01\", 12],\n      [1609459200000, \"host-02\", \"host-03\", 13],\n      [1609459200000, \"host-03\", \"host-01\", 1],\n      [1609459200000, \"host-03\", \"host-02\", 13]\n    ]\n  }\n]",
+          "refId": "A",
+          "scenarioId": "raw_frame"
+        }
+      ],
+      "title": "Accessible table view",
+      "type": "esnet-matrix-panel"
     }
   ],
   "refresh": "",

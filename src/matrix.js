@@ -171,12 +171,16 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
 
   // append the svg object to the body of the page
   const svgClass = `svg-${id}`;
-  const svgMatrix = d3
+  const svgRoot = d3
     .select(elem)
     .append('svg')
     .attr('id', svgClass)
     .attr('width', width + margin.left + margin.right)
     .attr('height', height + margin.top + margin.bottom)
+    .attr('role', 'img')
+    .attr('aria-label', `${rowNames.length} by ${colNames.length} matrix`)
+    .attr('class', styles.matrixA11yFocus);
+  const svgMatrix = svgRoot
     .append('g')
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
@@ -442,6 +446,31 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       const str = '' + outer_counter + ':' + i + ' ' + rowNames[outer_counter] + ':' + colNames[i] + ' ' + d;
       return str;
     })
+    // data-row-idx/data-col-idx let the keyboard-nav handler below look up a
+    // neighboring cell by position, since column names may repeat across
+    // categories and can't be used as a unique lookup key.
+    .attr('data-row-idx', function (d, i) {
+      return outer.get(this);
+    })
+    .attr('data-col-idx', function (d, i) {
+      return i;
+    })
+    .attr('role', 'button')
+    .attr('aria-label', function (d, i) {
+      const outer_counter = outer.get(this);
+      const rowName = sanitizeHtml(rowNames[outer_counter]);
+      const colName = sanitizeHtml(colNames[i]);
+      if (d === -1) {
+        return `${srcText} ${rowName}, ${targetText} ${colName}: no data`;
+      }
+      const thisText = sanitizeHtml(d.display.text);
+      const thisSuffix = sanitizeHtml(d.display.suffix);
+      return `${srcText} ${rowName}, ${targetText} ${colName}, ${valText} ${thisText}${thisSuffix ? ' ' + thisSuffix : ''}`;
+    })
+    .attr('tabindex', function (d, i) {
+      const outer_counter = outer.get(this);
+      return outer_counter === 0 && i === 0 ? '0' : '-1';
+    })
     .attr('fill', (d) => {
       if (d.color) {
         return d.color;
@@ -512,6 +541,50 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     .on('click', function (d) {
       if(linkURL) {
         tooltip.remove();
+      }
+    })
+    // Roving tabindex: only one cell is ever in the tab order at a time.
+    // Arrow keys move the "0" tabindex (and focus) by one row/column,
+    // clamped at the matrix edges; Enter/Space act like a click.
+    .on('keydown', function (event) {
+      const key = event.key;
+      if (key === 'Escape') {
+        this.blur();
+        return;
+      }
+      if (key === 'Enter' || key === ' ') {
+        event.preventDefault();
+        this.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        return;
+      }
+      const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+      if (!arrowKeys.includes(key)) {
+        return;
+      }
+      event.preventDefault();
+
+      const rowIdx = parseInt(this.getAttribute('data-row-idx'), 10);
+      const colIdx = parseInt(this.getAttribute('data-col-idx'), 10);
+      let nextRow = rowIdx;
+      let nextCol = colIdx;
+      if (key === 'ArrowUp') {
+        nextRow = Math.max(0, rowIdx - 1);
+      } else if (key === 'ArrowDown') {
+        nextRow = Math.min(rowNames.length - 1, rowIdx + 1);
+      } else if (key === 'ArrowLeft') {
+        nextCol = Math.max(0, colIdx - 1);
+      } else if (key === 'ArrowRight') {
+        nextCol = Math.min(colNames.length - 1, colIdx + 1);
+      }
+      if (nextRow === rowIdx && nextCol === colIdx) {
+        return;
+      }
+
+      const nextCell = rectArea.select(`rect[data-row-idx="${nextRow}"][data-col-idx="${nextCol}"]`).node();
+      if (nextCell) {
+        this.setAttribute('tabindex', '-1');
+        nextCell.setAttribute('tabindex', '0');
+        nextCell.focus();
       }
     });
 
@@ -691,6 +764,14 @@ const getStyles = (theme: GrafanaTheme2) => {
     tooltipTableRowValue: css`
       font-weight: ${theme.typography.fontWeightMedium};
     `,
+    // SVG shapes don't get a consistent browser-default focus ring, so cells
+    // need an explicit one for keyboard navigation to be visible.
+    matrixA11yFocus: css`
+      rect[tabindex]:focus {
+        outline: 2px solid ${theme.colors.primary.main};
+        outline-offset: -2px;
+      }
+    `,
   };
 };
 
@@ -716,4 +797,4 @@ function matrix(rowNames, colNames, matrix, id, options, legend, colCategories, 
   return ref;
 }
 
-export { matrix };
+export { matrix, createViz };
