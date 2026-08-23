@@ -325,6 +325,13 @@ plugin.setPanelOptions((builder) => {
     category: OptionsCategory,
     defaultValue: '#E6E6E6',
   });
+  builder.addBooleanSwitch({
+    path: 'hoverCrossHighlight',
+    name: 'Highlight Row/Column on Hover',
+    description: 'When hovering a cell, dim unrelated cells and bold the hovered row/column labels',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
 
   /////////----------- Link URL options ---------------////////////////
   builder.addBooleanSwitch({

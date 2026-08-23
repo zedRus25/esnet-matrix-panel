@@ -30,6 +30,11 @@ export default defineConfig<PluginOptions>({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Tall enough to fit the full smoke-test dashboard (grid rows up to y=60) without
+     * scrolling. Panel mounting itself no longer depends on scroll position -- the
+     * dashboard sets `preload: true` -- but this still avoids scrolling in screenshots. */
+    viewport: { width: 1280, height: 2400 },
   },
 
   /* Configure projects for major browsers */

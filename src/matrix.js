@@ -189,6 +189,11 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
     return cellSize * (1 - cellPadding);
   };
 
+  // Name-indexed lookup so a cell's mouseover handler can find its row/column
+  // label selection directly (used by hoverCrossHighlight below).
+  const colLabelByName = new Map();
+  const rowLabelByName = new Map();
+
   // Create axis manually with proper styling
   const xAxisGroup = svgMatrix.append('g').attr('class', 'x-axis').attr('font-size', '10');
   columnPositions.forEach(pos => {
@@ -199,6 +204,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       .style('font-family', theme.typography.fontFamily)
       .attr('fill', theme.colors.text.primary)
       .text(pos.name);
+
+    colLabelByName.set(pos.name, label);
 
     // Apply truncation and tooltips
     label.call(truncateLabel, txtLength);
@@ -242,6 +249,8 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
       .style('font-family', theme.typography.fontFamily)
       .attr('fill', theme.colors.text.primary)
       .text(pos.name);
+
+    rowLabelByName.set(pos.name, label);
 
     label.call(truncateLabel, txtLength);
     label.on('mouseover', function (event, d) {
@@ -490,12 +499,24 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           .transition()
           .duration(150)
           .style('opacity', 1);
+
+        if (options.hoverCrossHighlight) {
+          rects.style('opacity', (c) => (c !== -1 && (c.row === d.row || c.col === d.col) ? 1 : 0.3));
+          const rowLabel = rowLabelByName.get(d.row);
+          const colLabel = colLabelByName.get(d.col);
+          if (rowLabel) {
+            rowLabel.style('font-weight', 700);
+          }
+          if (colLabel) {
+            colLabel.style('font-weight', 700);
+          }
+        }
       }
     })
     .on('mousemove', function (event) {
       moveTooltip(event, elem, tooltip);
     })
-    .on('mouseout', function () {
+    .on('mouseout', function (event, d) {
       //reset the opacity and move the tooltip out of the way. If we dont move it it will prevent hovering over other boxes.
       d3.select(this)
         // .attr('opacity', '1')
@@ -508,6 +529,18 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
         .delay(100)
         .duration(150)
         .style('opacity', 0)
+
+      if (options.hoverCrossHighlight && d !== -1) {
+        rects.style('opacity', 1);
+        const rowLabel = rowLabelByName.get(d.row);
+        const colLabel = colLabelByName.get(d.col);
+        if (rowLabel) {
+          rowLabel.style('font-weight', null);
+        }
+        if (colLabel) {
+          colLabel.style('font-weight', null);
+        }
+      }
     })
     .on('click', function (d) {
       if(linkURL) {
@@ -590,7 +623,7 @@ function createViz(elem, id, rowNames, colNames, matrix, options, theme, legend,
           return 25 + i * 75;
         })
         .attr('cy', 20);
-      svg
+      svgLegend
         .append('g')
         .selectAll('legendLabels')
         .data(legend)
