@@ -283,7 +283,10 @@ jobs:
     name: Before/after panel screenshots
     if: ${{ github.event_name == 'pull_request' && needs.build.outputs.has-e2e == 'true' }}
     needs: build
-    timeout-minutes: 15
+    # Two full install+build+docker+e2e cycles (before and after) in one job;
+    # 15 minutes left no margin even in the best case, and none at all if a
+    # runner is briefly slow. 25 gives real headroom without masking a hang.
+    timeout-minutes: 25
     permissions:
       contents: read
     runs-on: ubuntu-latest
