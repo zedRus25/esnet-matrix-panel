@@ -1,4 +1,6 @@
 import { DataFrameView, Field, FieldType, getFieldDisplayName, GrafanaTheme2, PanelData } from '@grafana/data';
+import { scaleSequential } from 'd3-scale';
+import { interpolateRdBu, interpolateViridis } from 'd3-scale-chromatic';
 import { Category, DataMatrixCell, LegendData, MatrixData, MatrixOptions } from './types';
 
 /**
@@ -83,11 +85,37 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   // if value is null or was not returned by query, use different value
   const nullColor = theme.visualization.getColorByName(options.nullColor);
   const defaultColor = theme.visualization.getColorByName(options.defaultColor);
+
+  // Sequential/diverging color modes bypass Standard Options entirely, using a
+  // d3 continuous scale over the field's actual value range instead of
+  // manually-configured thresholds.
+  let sequentialScale: ((v: number) => string) | null = null;
+  let divergingScale: ((v: number) => string) | null = null;
+  if (options.cellColorMode === 'sequential' || options.cellColorMode === 'diverging') {
+    const allValues: number[] = Object.values(frame.fields[valKey].values)
+      .filter((v: any) => v !== null && v !== -1);
+    const domainMin = options.colorScaleMin != null && !isNaN(options.colorScaleMin)
+      ? options.colorScaleMin
+      : Math.min(...allValues);
+    const domainMax = options.colorScaleMax != null && !isNaN(options.colorScaleMax)
+      ? options.colorScaleMax
+      : Math.max(...allValues);
+    if (options.cellColorMode === 'sequential') {
+      sequentialScale = scaleSequential(interpolateViridis).domain([domainMin, domainMax]).clamp(true);
+    } else {
+      divergingScale = scaleSequential(interpolateRdBu).domain([domainMin, domainMax]).clamp(true);
+    }
+  }
+
   function colorMap(v: any): string {
     if (v === null) {
       return nullColor;
     } else if (v === -1) {
       return defaultColor;
+    } else if (sequentialScale !== null) {
+      return sequentialScale(v);
+    } else if (divergingScale !== null) {
+      return divergingScale(v);
     } else {
       return valueField!.display!(v).color!;
     }

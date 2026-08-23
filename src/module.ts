@@ -22,6 +22,7 @@ const staticBool = (inputList: boolean) => (config: MatrixOptions) => config.inp
 const legendBool = (showLegend: boolean) => (config: MatrixOptions) => config.showLegend === showLegend;
 const colGroupingBool = (enableColGrouping: boolean) => (config: MatrixOptions) => config.enableColGrouping === enableColGrouping;
 const rowGroupingBool = (enableRowGrouping: boolean) => (config: MatrixOptions) => config.enableRowGrouping === enableRowGrouping;
+const cellColorModeNot = (mode: string) => (config: MatrixOptions) => config.cellColorMode !== mode;
 
 // const buildStandardOptions = (): any => {
 //   const options = [FieldConfigProperty.Unit, FieldConfigProperty.Color, FieldConfigProperty.Thresholds];
@@ -324,6 +325,41 @@ plugin.setPanelOptions((builder) => {
     description: 'The color to use when there is no data returned by the query',
     category: OptionsCategory,
     defaultValue: '#E6E6E6',
+  });
+  builder.addSelect({
+    path: 'cellColorMode',
+    name: 'Cell Color Mode',
+    description: 'How cell values map to color. "Standard Options" uses the panel\'s Color/Thresholds config (current default behavior).',
+    category: OptionsCategory,
+    defaultValue: 'standard',
+    settings: {
+      allowCustomValue: false,
+      options: [
+        { value: 'standard', label: 'Standard Options' },
+        { value: 'sequential', label: 'Sequential' },
+        { value: 'diverging', label: 'Diverging' },
+      ],
+    },
+  });
+  builder.addNumberInput({
+    path: 'colorScaleMin',
+    name: 'Color Scale Min',
+    description: 'Lower bound of the sequential/diverging color scale. Leave blank to compute from the data.',
+    category: OptionsCategory,
+    showIf: cellColorModeNot('standard'),
+    settings: {
+      placeholder: 'Auto',
+    },
+  });
+  builder.addNumberInput({
+    path: 'colorScaleMax',
+    name: 'Color Scale Max',
+    description: 'Upper bound of the sequential/diverging color scale. Leave blank to compute from the data.',
+    category: OptionsCategory,
+    showIf: cellColorModeNot('standard'),
+    settings: {
+      placeholder: 'Auto',
+    },
   });
 
   /////////----------- Link URL options ---------------////////////////

@@ -713,6 +713,56 @@
       ],
       "title": "Custom grouping header dimensions",
       "type": "esnet-matrix-panel"
+    },
+    {
+      "datasource": { "type": "grafana-testdata-datasource", "uid": "trlxrdZVk" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 15, "w": 8, "x": 0, "y": 75 },
+      "id": 18,
+      "options": {
+        "addUrl": false, "cellColorMode": "sequential", "cellPadding": 10, "cellSize": 18,
+        "defaultColor": "#E6E6E6", "enableColGrouping": false, "enableRowGrouping": false,
+        "inputList": false, "legendType": "range", "nullColor": "#E6E6E6",
+        "showLegend": false, "sortType": "natural-asc", "sourceField": "Source", "sourceText": "From",
+        "targetField": "Destination", "targetText": "To", "txtLength": 50, "txtSize": 12,
+        "valueText": "Value"
+      },
+      "pluginVersion": "2.0.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-testdata-datasource", "uid": "db84e60d-b92a-4089-82cb-34842fb1754b" },
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"Time\", \"type\": \"time\" },\n      { \"text\": \"Source\", \"type\": \"string\" },\n      { \"text\": \"Destination\", \"type\": \"string\" },\n      { \"text\": \"Value\", \"type\": \"number\" }\n    ],\n    \"rows\": [\n      [1609459200000, \"host-01\", \"host-01\", 0],\n      [1609459200000, \"host-01\", \"host-02\", 5],\n      [1609459200000, \"host-01\", \"host-03\", 10],\n      [1609459200000, \"host-02\", \"host-01\", 5],\n      [1609459200000, \"host-02\", \"host-02\", 0],\n      [1609459200000, \"host-02\", \"host-03\", 5],\n      [1609459200000, \"host-03\", \"host-01\", 10],\n      [1609459200000, \"host-03\", \"host-02\", 5],\n      [1609459200000, \"host-03\", \"host-03\", 0]\n    ]\n  }\n]",
+          "refId": "A",
+          "scenarioId": "raw_frame"
+        }
+      ],
+      "title": "Sequential cell color mode",
+      "type": "esnet-matrix-panel"
+    },
+    {
+      "datasource": { "type": "grafana-testdata-datasource", "uid": "trlxrdZVk" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 15, "w": 8, "x": 8, "y": 75 },
+      "id": 19,
+      "options": {
+        "addUrl": false, "cellColorMode": "diverging", "cellPadding": 10, "cellSize": 18,
+        "defaultColor": "#E6E6E6", "enableColGrouping": false, "enableRowGrouping": false,
+        "inputList": false, "legendType": "range", "nullColor": "#E6E6E6",
+        "showLegend": false, "sortType": "natural-asc", "sourceField": "Source", "sourceText": "From",
+        "targetField": "Destination", "targetText": "To", "txtLength": 50, "txtSize": 12,
+        "valueText": "Value"
+      },
+      "pluginVersion": "2.0.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-testdata-datasource", "uid": "db84e60d-b92a-4089-82cb-34842fb1754b" },
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"Time\", \"type\": \"time\" },\n      { \"text\": \"Source\", \"type\": \"string\" },\n      { \"text\": \"Destination\", \"type\": \"string\" },\n      { \"text\": \"Value\", \"type\": \"number\" }\n    ],\n    \"rows\": [\n      [1609459200000, \"host-01\", \"host-01\", -10],\n      [1609459200000, \"host-01\", \"host-02\", 0],\n      [1609459200000, \"host-01\", \"host-03\", 10],\n      [1609459200000, \"host-02\", \"host-01\", 0],\n      [1609459200000, \"host-02\", \"host-02\", -10],\n      [1609459200000, \"host-02\", \"host-03\", 0],\n      [1609459200000, \"host-03\", \"host-01\", 10],\n      [1609459200000, \"host-03\", \"host-02\", 0],\n      [1609459200000, \"host-03\", \"host-03\", -10]\n    ]\n  }\n]",
+          "refId": "A",
+          "scenarioId": "raw_frame"
+        }
+      ],
+      "title": "Diverging cell color mode",
+      "type": "esnet-matrix-panel"
     }
   ],
   "refresh": "",
