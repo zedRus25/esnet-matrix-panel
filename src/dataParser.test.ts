@@ -1,4 +1,4 @@
-import { createTheme, FieldType, PanelData, toDataFrame } from '@grafana/data';
+import { createTheme, FieldType, getDisplayProcessor, PanelData, toDataFrame } from '@grafana/data';
 import { parseData } from './dataParser';
 import { MatrixOptions } from './types';
 
@@ -103,6 +103,8 @@ describe('parseData reason codes', () => {
         { name: 'value', type: FieldType.number, values: [1, 2] },
       ],
     });
+    const valueField = frame.fields.find((f) => f.name === 'value')!;
+    valueField.display = getDisplayProcessor({ field: valueField, theme });
     const result = parseData(makePanelData([frame]), makeOptions(), theme);
     expect(result.reason).toBeUndefined();
     expect(result.rowNames).not.toBeNull();
