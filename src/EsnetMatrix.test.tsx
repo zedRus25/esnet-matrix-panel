@@ -1,6 +1,6 @@
 import React from 'react';
-import { render } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { createRoot, Root } from 'react-dom/client';
+import { act } from 'react-dom/test-utils';
 
 jest.mock('@grafana/ui', () => ({
   useTheme2: () => ({}),
@@ -45,17 +45,36 @@ describe('EsnetMatrix accessible table view', () => {
     fieldConfig: {},
   };
 
+  let container: HTMLDivElement;
+  let root: Root;
+
   beforeEach(() => {
     (parseData as jest.Mock).mockReturnValue(baseParsedData);
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
   });
 
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  function renderMatrix(options: any) {
+    act(() => {
+      root.render(<EsnetMatrix {...baseProps} options={options} />);
+    });
+  }
+
   it('renders no table when accessibleTableView is off', () => {
-    const { container } = render(<EsnetMatrix {...baseProps} options={{ accessibleTableView: false } as any} />);
+    renderMatrix({ accessibleTableView: false });
     expect(container.querySelector('table')).toBeNull();
   });
 
   it('renders a table matching the parsed data when accessibleTableView is on', () => {
-    const { container } = render(<EsnetMatrix {...baseProps} options={{ accessibleTableView: true } as any} />);
+    renderMatrix({ accessibleTableView: true });
 
     const table = container.querySelector('table');
     expect(table).not.toBeNull();
