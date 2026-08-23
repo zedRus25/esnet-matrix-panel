@@ -325,6 +325,13 @@ plugin.setPanelOptions((builder) => {
     category: OptionsCategory,
     defaultValue: '#E6E6E6',
   });
+  builder.addBooleanSwitch({
+    path: 'outlineNoDataCells',
+    name: 'Outline No Data Cells',
+    description: 'Draw a hairline outline around cells with no data, to visually distinguish them from cells with an explicit null value',
+    category: OptionsCategory,
+    defaultValue: false,
+  });
 
   /////////----------- Link URL options ---------------////////////////
   builder.addBooleanSwitch({

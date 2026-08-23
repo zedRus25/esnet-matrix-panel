@@ -233,6 +233,7 @@
         "addUrl": false, "aggregationMethod": "sum", "cellPadding": 10, "cellSize": 18,
         "defaultColor": "#E31A1C", "enableColGrouping": false, "enableRowGrouping": false,
         "inputList": false, "legendType": "range", "nullColor": "#1F78B4",
+        "outlineNoDataCells": true,
         "seriesCountSize": "sm", "showLegend": false, "showSeriesCount": false,
         "sortType": "natural-asc", "sourceField": "Source", "sourceText": "From",
         "targetField": "Destination", "targetText": "To",
