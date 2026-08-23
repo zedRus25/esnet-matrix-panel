@@ -713,6 +713,42 @@
       ],
       "title": "Custom grouping header dimensions",
       "type": "esnet-matrix-panel"
+    },
+    {
+      "datasource": { "type": "grafana-testdata-datasource", "uid": "trlxrdZVk" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": 0 }, { "color": "red", "value": 80 } ] },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 15, "w": 6, "x": 0, "y": 75 },
+      "id": 18,
+      "options": {
+        "addUrl": false, "aggregationMethod": "sum", "cellPadding": 10, "cellSize": 18,
+        "defaultColor": "#E6E6E6", "enableColGrouping": false, "enableRowGrouping": false,
+        "hoverCrossHighlight": true,
+        "inputList": false, "legendType": "range", "nullColor": "#E6E6E6",
+        "seriesCountSize": "sm", "showLegend": false, "showSeriesCount": false,
+        "sourceField": "Source", "sourceText": "From",
+        "targetField": "Destination", "targetText": "To",
+        "text": "Default value of text input option", "txtLength": 50, "txtSize": 12,
+        "valueText": "Value", "values": 1
+      },
+      "pluginVersion": "2.0.2",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-testdata-datasource", "uid": "db84e60d-b92a-4089-82cb-34842fb1754b" },
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"Time\", \"type\": \"time\" },\n      { \"text\": \"Source\", \"type\": \"string\" },\n      { \"text\": \"Destination\", \"type\": \"string\" },\n      { \"text\": \"Value\", \"type\": \"number\" }\n    ],\n    \"rows\": [\n      [1609459200000, \"host-01.example.org\", \"host-02.example.org\", 10],\n      [1609459200000, \"host-01.example.org\", \"host-03.example.org\", 15],\n      [1609459200000, \"host-02.example.org\", \"host-01.example.org\", 12],\n      [1609459200000, \"host-02.example.org\", \"host-03.example.org\", 13],\n      [1609459200000, \"host-03.example.org\", \"host-01.example.org\", 1],\n      [1609459200000, \"host-03.example.org\", \"host-02.example.org\", 13]\n    ]\n  }\n]",
+          "refId": "A",
+          "scenarioId": "raw_frame"
+        }
+      ],
+      "title": "Hover cross-highlight",
+      "type": "esnet-matrix-panel"
     }
   ],
   "refresh": "",

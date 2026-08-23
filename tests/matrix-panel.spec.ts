@@ -210,4 +210,28 @@ test.describe('esnet-matrix-panel', () => {
     await expect(panel.locator.locator('#svg-17')).toBeVisible();
     await panel.locator.screenshot({ path: 'test-results/screenshots/custom-grouping-headers-panel.png' });
   });
+
+  test('hover cross-highlight panel dims unrelated cells and bolds matching labels', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('18');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('#svg-18')).toBeVisible();
+
+    // Hover the row 0 / col 1 cell (host-01 -> host-02).
+    const hoveredCell = panel.locator.locator('#svg-18 rect[data^="0:1 "]');
+    await hoveredCell.hover();
+
+    // The matching row (index 0) and column (index 1) labels should bold.
+    await expect(panel.locator.locator('#svg-18 .y-axis text').nth(0)).toHaveCSS('font-weight', '700');
+    await expect(panel.locator.locator('#svg-18 .x-axis text').nth(1)).toHaveCSS('font-weight', '700');
+
+    // A cell outside that row and column (row 2 / col 2) should dim.
+    await expect(panel.locator.locator('#svg-18 rect[data^="2:2 "]')).toHaveCSS('opacity', '0.3');
+
+    await panel.locator.screenshot({ path: 'test-results/screenshots/hover-cross-highlight-panel.png' });
+  });
 });
