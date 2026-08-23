@@ -409,11 +409,19 @@ jobs:
             echo "<h1>Before/after panel screenshots &mdash; run ${GITHUB_RUN_NUMBER}</h1>"
             echo "<p>Commit <code>${GITHUB_SHA}</code></p>"
             echo '<table><thead><tr><th>Screenshot</th><th>Before</th><th>After</th></tr></thead><tbody>'
-            for f in before-after/before/*; do
-              name=$(basename "$f")
-              if [ -f "before-after/after/${name}" ]; then
-                echo "<tr><td>${name}</td><td><img src=\"before/${name}\"></td><td><img src=\"after/${name}\"></td></tr>"
+            for name in $(ls before-after/before/ before-after/after/ 2>/dev/null | sort -u); do
+              before_cell="<em>n/a</em>"
+              after_cell="<em>n/a</em>"
+              label="${name}"
+              if [ -f "before-after/before/${name}" ]; then
+                before_cell="<img src=\"before/${name}\">"
+              else
+                label="${name} <em>(new)</em>"
               fi
+              if [ -f "before-after/after/${name}" ]; then
+                after_cell="<img src=\"after/${name}\">"
+              fi
+              echo "<tr><td>${label}</td><td>${before_cell}</td><td>${after_cell}</td></tr>"
             done
             echo '</tbody></table></body></html>'
           } > before-after/index.html
