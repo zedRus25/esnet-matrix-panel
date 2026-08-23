@@ -56,6 +56,7 @@ export type MatrixData = {
   rowCategories: Category[];
   data: DataMatrixCell[][] | string | null;
   legend: LegendData[] | null;
+  reason?: 'no-series' | 'no-field-mapping' | 'no-rows-or-cols' | 'too-many-cells';
 };
 
 export type DataMatrixCell = {

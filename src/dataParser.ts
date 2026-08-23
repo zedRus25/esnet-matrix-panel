@@ -18,14 +18,14 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   if (series === null || series === undefined) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-series' };
   }
 
   const frame = new DataFrameView(series);
   if (frame === null || frame === undefined) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-series' };
   }
   // set fields
   const sourceField = series.fields.find((f: Field) =>
@@ -76,7 +76,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   ) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-field-mapping' };
   }
 
   // function that maps value to color specified by Standard Options panel.
@@ -89,7 +89,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     } else if (v === -1) {
       return defaultColor;
     } else {
-      return valueField.display(v).color;
+      return valueField!.display!(v).color!;
     }
   }
 
@@ -119,7 +119,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         // new row heading
         rowNamesSet.add(rowName);
 
-        const categoryName = row[rowCategoryKey];
+        const categoryName = row[rowCategoryKey!];
         if (rowGrouping && categoryName != null) {
           if (!rowCategoriesMap.has(categoryName)) {
             // new row category
@@ -140,7 +140,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         // new column heading
         colNamesSet.add(colName);
 
-        const categoryName = row[colCategoryKey];
+        const categoryName = row[colCategoryKey!];
         if (colGrouping && categoryName != null) {
           if (!colCategoriesMap.has(categoryName)) {
             // new column category
@@ -161,12 +161,12 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
   if (rowNamesSet.size === 0 || colNamesSet.size === 0) {
     // no data, bail
     console.error('no data');
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: null, legend: null, reason: 'no-rows-or-cols' };
   }
 
   const numSquaresInMatrix = rowNamesSet.size * colNamesSet.size;
   if (numSquaresInMatrix > 50000) {
-    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: 'too many inputs', legend: null };
+    return { rowNames: null, colNames: null, colCategories: [], rowCategories: [], data: 'too many inputs', legend: null, reason: 'too-many-cells' };
   }
 
   const rowNames: any[] = Array.from(rowNamesSet);
@@ -230,7 +230,7 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
         col: colName,
         val: v,
         color: colorMap(v),
-        display: valueField.display(v),
+        display: valueField!.display!(v),
       };
     }
   });
@@ -259,9 +259,9 @@ export function parseData(data: PanelData, options: MatrixOptions, theme: Grafan
     tempValues.forEach((val) => {
       // find display values, unit & color for each
       // store in array
-      let text = valueField.display(val).text;
-      if (valueField.display(val).suffix) {
-        text = text + ` ${valueField.display(val).suffix}`;
+      let text = valueField!.display!(val).text;
+      if (valueField!.display!(val).suffix) {
+        text = text + ` ${valueField!.display!(val).suffix}`;
       }
         legendData.push({
           label: text,
