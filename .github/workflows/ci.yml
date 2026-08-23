@@ -527,3 +527,43 @@ jobs:
             echo "- [Report index](${BASE_URL}/)"
             echo "- [This run's reports (${DATE_DIR}/${RUN_DIR})](${BASE_URL}/${DATE_DIR}/${RUN_DIR}/)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on PR with before/after report link
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const hasBeforeAfter = fs.existsSync('before-after/index.html');
+            if (!hasBeforeAfter) return;
+
+            const dateDir = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const runDir = context.runNumber;
+            const ownerLower = context.repo.owner.toLowerCase();
+            const baseUrl = `https://${ownerLower}.github.io/${context.repo.repo}`;
+            const reportUrl = `${baseUrl}/${dateDir}/${runDir}/before-after/`;
+            const marker = '<!-- before-after-report-comment -->';
+            const body = `${marker}\n### Before/after panel screenshots\n[View this run's comparison](${reportUrl})`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
