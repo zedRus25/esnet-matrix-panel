@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@grafana/ui', () => ({
@@ -50,24 +50,27 @@ describe('EsnetMatrix accessible table view', () => {
   });
 
   it('renders no table when accessibleTableView is off', () => {
-    render(<EsnetMatrix {...baseProps} options={{ accessibleTableView: false } as any} />);
-    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const { container } = render(<EsnetMatrix {...baseProps} options={{ accessibleTableView: false } as any} />);
+    expect(container.querySelector('table')).toBeNull();
   });
 
   it('renders a table matching the parsed data when accessibleTableView is on', () => {
-    render(<EsnetMatrix {...baseProps} options={{ accessibleTableView: true } as any} />);
+    const { container } = render(<EsnetMatrix {...baseProps} options={{ accessibleTableView: true } as any} />);
 
-    const table = screen.getByRole('table');
-    const rows = within(table).getAllByRole('row');
+    const table = container.querySelector('table');
+    expect(table).not.toBeNull();
+
+    const rows = table!.querySelectorAll('tr');
     // 1 header row + 2 data rows
     expect(rows).toHaveLength(3);
 
-    expect(within(table).getByRole('columnheader', { name: 'dc-a' })).toBeInTheDocument();
-    expect(within(table).getByRole('columnheader', { name: 'dc-b' })).toBeInTheDocument();
-    expect(within(table).getByRole('rowheader', { name: 'host-01' })).toBeInTheDocument();
-    expect(within(table).getByRole('rowheader', { name: 'host-02' })).toBeInTheDocument();
+    const columnHeaders = Array.from(table!.querySelectorAll('th[scope="col"]')).map((el) => el.textContent);
+    expect(columnHeaders).toEqual(['', 'dc-a', 'dc-b']);
 
-    const cells = within(table).getAllByRole('cell');
-    expect(cells.map((c) => c.textContent)).toEqual(['1', '', '2 ms', '']);
+    const rowHeaders = Array.from(table!.querySelectorAll('th[scope="row"]')).map((el) => el.textContent);
+    expect(rowHeaders).toEqual(['host-01', 'host-02']);
+
+    const cells = Array.from(table!.querySelectorAll('td')).map((el) => el.textContent);
+    expect(cells).toEqual(['1', '', '2 ms', '']);
   });
 });
