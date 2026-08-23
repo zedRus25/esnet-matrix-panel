@@ -156,4 +156,58 @@ test.describe('esnet-matrix-panel', () => {
     await expect(panel.locator.locator('#svg-13')).toBeVisible();
     await panel.locator.screenshot({ path: 'test-results/screenshots/csv-data-shape-panel.png' });
   });
+
+  test('natural-asc sort orders numeric-suffixed labels numerically, not lexically', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('14');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('#svg-14')).toBeVisible();
+
+    // node1, node2, node10, nodeA in that order proves numeric-aware
+    // ordering; a lexical sort would instead produce node1, node10, node2, nodeA.
+    const labels = await panel.locator.locator('#svg-14 .y-axis text').allTextContents();
+    expect(labels).toEqual(['node1', 'node2', 'node10', 'nodeA']);
+
+    await panel.locator.screenshot({ path: 'test-results/screenshots/sort-natural-asc-numeric-panel.png' });
+  });
+
+  test('custom field names panel renders without error and ignores extra columns', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('15');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('#svg-15')).toBeVisible();
+    await panel.locator.screenshot({ path: 'test-results/screenshots/custom-field-names-panel.png' });
+  });
+
+  test('panel with no saved sortType migrates to natural-asc', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('16');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('#svg-16')).toBeVisible();
+    await panel.locator.screenshot({ path: 'test-results/screenshots/sorttype-migration-panel.png' });
+  });
+
+  test('custom grouping header dimensions panel renders without error', async ({ gotoDashboardPage, readProvisionedDashboard }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    const dashboardPage = await gotoDashboardPage({ uid: dashboard.uid });
+
+    const panel = dashboardPage.getPanelById('17');
+    await panel.locator.scrollIntoViewIfNeeded();
+    await expect(panel.locator).toBeVisible();
+    await expect(panel.getErrorIcon()).not.toBeVisible();
+    await expect(panel.locator.locator('#svg-17')).toBeVisible();
+    await panel.locator.screenshot({ path: 'test-results/screenshots/custom-grouping-headers-panel.png' });
+  });
 });
